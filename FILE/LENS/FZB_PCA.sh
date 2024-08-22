@@ -21,4 +21,4 @@ module load cray-hdf5-parallel
 LABEL="FZB"
 NAME="LENS"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_PCA.py" --path="${BASE_PATH}" --name="${NAME}" --label="${LABEL}"
+python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_PCA.py" --path=$BASE_PATH --name=$NAME --label=$LABEL
