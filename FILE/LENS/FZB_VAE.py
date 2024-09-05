@@ -2,6 +2,7 @@ import os
 import time
 import h5py
 import numpy
+import argparse
 from matplotlib import pyplot
 from sklearn.model_selection import train_test_split
 
@@ -32,7 +33,7 @@ def main(path, name, label):
         input = file['sample'][:].astype(numpy.float32)
     
     mock_size, bin_size, grid_size = input.shape
-    data_size = (bin_size, grid_size)
+    data_size = (grid_size, bin_size)
     latent_size = 8
     
     phi0 = 12.0
@@ -41,6 +42,7 @@ def main(path, name, label):
     input_data = numpy.transpose(input, axes = (0, 2, 1)) / phi0
     train_data, evaluation_data = train_test_split(input_data, test_size = 0.2)
     validation_data, test_data = train_test_split(evaluation_data, test_size = 0.5)
+    print(input_data.max(), input_data.min())
     
     # Redshift
     z1 = 0.0
@@ -84,3 +86,16 @@ def main(path, name, label):
     
     print('Time: {:.2f} minutes'.format(duration))
     return duration
+
+if __name__ == '__main__':
+    
+    # Input
+    PARSE = argparse.ArgumentParser(description='FZB VAE')
+    PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
+    PARSE.add_argument('--label', type=str, required=True, help='The label of the method for photometric redshifts')
+    
+    PATH = PARSE.parse_args().path
+    NAME = PARSE.parse_args().name
+    LABEL = PARSE.parse_args().label
+    RESULT = main(PATH, NAME, LABEL)

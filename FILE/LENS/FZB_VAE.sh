@@ -12,13 +12,10 @@
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
-module load tensorflow
-module load PrgEnv-gnu
-module load cray-mpich/8.1.28
-module load cray-hdf5-parallel
+module load tensorflow/2.9.0
 
 # Run the application
 LABEL="FZB"
 NAME="LENS"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_VAE.py"--path=$BASE_PATH --name=$NAME --label=$LABEL
+python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_VAE.py" --path=$BASE_PATH --name=$NAME --label=$LABEL

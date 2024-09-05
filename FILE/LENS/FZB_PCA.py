@@ -80,6 +80,7 @@ def main(path, name, label):
     Arguments:
         path (str): The path to the base folder.
         name (str): The name of the sample datasets.
+        label (str): The label of the sample datasets.
     
     Returns:
         duration (float): The duration of the PCA analysis
