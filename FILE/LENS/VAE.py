@@ -7,9 +7,9 @@ from matplotlib import pyplot
 from sklearn.model_selection import train_test_split
 
 import tensorflow
-from VAE_MODEL import VAE
+from VAECloud.FILE.LENS.MODEL import VAE
 from tensorflow import keras
-from VAE_FIGURE import plot_loss, plot_data, plot_covariance
+from VAECloud.FILE.LENS.FIGURE import plot_loss, plot_data, plot_covariance
 
 def main(path, name, label):
     """
