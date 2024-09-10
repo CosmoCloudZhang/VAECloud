@@ -6,12 +6,12 @@ import argparse
 from matplotlib import pyplot
 from sklearn.model_selection import train_test_split
 
+import VAE_MODEL
+import VAE_FIGURE
 import tensorflow
-from VAECloud.FILE.LENS.MODEL import VAE
 from tensorflow import keras
-from VAECloud.FILE.LENS.FIGURE import plot_loss, plot_data, plot_covariance
 
-def main(path, name, label):
+def main(path, name):
     """
     Main function for the PCA analysis.
     
@@ -26,9 +26,10 @@ def main(path, name, label):
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
     plot_path = os.path.join(path, 'PLOT/')
+    os.makedirs(os.path.join(plot_path, '{}/VAE/'.format(name)), exist_ok = True)
     
     # Data
-    data_name = os.path.join(data_path, '{}/{}/INPUT.hdf5'.format(name, label))
+    data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
     with h5py.File(data_name, 'r') as file:
         input = file['sample'][:].astype(numpy.float32)
     
@@ -59,7 +60,7 @@ def main(path, name, label):
     
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
-        model = VAE(latent_size, phi0, data_size, latent_size)
+        model = VAE_MODEL.VAE(latent_size, phi0, data_size, latent_size)
         model.compile(optimizer = keras.optimizers.Adam(learning_rate = rate, clipvalue = 1.0))
     
     history = model.fit(train_data, shuffle = True, verbose = 'auto', epochs = epoch_size, validation_data = [validation_data, validation_data])
@@ -70,9 +71,9 @@ def main(path, name, label):
     test_input = numpy.transpose(test_data, axes = (0, 2, 1)) * phi0
     test_output = numpy.transpose(model.predict(test_data), axes = (0, 2, 1)) * phi0
     
-    model.save(os.path.join(data_path, '{}/{}/MODEL/'.format(name, label)))
-    numpy.savetxt(os.path.join(data_path, '{}/{}/TEST_INPUT.txt'.format(name, label)), test_data.reshape(test_size, bin_size * grid_size))
-    numpy.savetxt(os.path.join(data_path, '{}/{}/TEST_OUTPUT.txt'.format(name, label)), model.predict(test_data).reshape(test_size, bin_size * grid_size))
+    model.save(os.path.join(data_path, '{}/MODEL/'.format(name)))
+    numpy.savetxt(os.path.join(data_path, '{}/TEST_INPUT.txt'.format(name)), test_data.reshape(test_size, bin_size * grid_size))
+    numpy.savetxt(os.path.join(data_path, '{}/TEST_OUTPUT.txt'.format(name)), model.predict(test_data).reshape(test_size, bin_size * grid_size))
     
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
     pyplot.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
@@ -93,9 +94,7 @@ if __name__ == '__main__':
     PARSE = argparse.ArgumentParser(description='FZB VAE')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
-    PARSE.add_argument('--label', type=str, required=True, help='The label of the method for photometric redshifts')
     
     PATH = PARSE.parse_args().path
     NAME = PARSE.parse_args().name
-    LABEL = PARSE.parse_args().label
-    RESULT = main(PATH, NAME, LABEL)
+    RESULT = main(PATH, NAME)

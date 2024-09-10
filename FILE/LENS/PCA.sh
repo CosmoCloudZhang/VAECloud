@@ -18,7 +18,6 @@ module load cray-mpich/8.1.28
 module load cray-hdf5-parallel
 
 # Run the application
-LABEL="FZB"
 NAME="LENS"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_PCA.py" --path=$BASE_PATH --name=$NAME --label=$LABEL
+python -u "${BASE_PATH}/FILE/${NAME}/PCA.py" --path=$BASE_PATH --name=$NAME
