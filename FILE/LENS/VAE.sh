@@ -17,4 +17,4 @@ module load tensorflow/2.9.0
 # Run the application
 NAME="LENS"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/${LABEL}_VAE.py" --path=$BASE_PATH --name=$NAME
+python -u "${BASE_PATH}/FILE/${NAME}/VAE.py" --path=$BASE_PATH --name=$NAME

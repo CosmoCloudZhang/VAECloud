@@ -4,7 +4,16 @@ from matplotlib import pyplot
 
 
 def plot_data(phi, z_grid):
+    """
+    Plot the data.
     
+    Arguments:
+        phi (numpy.ndarray): The data.
+        z_grid (numpy.ndarray): The grid.
+    
+    Returns:
+        figure (matplotlib.figure.Figure): The figure.
+    """
     z_grid = (z_grid[+1:] + z_grid[:-1]) / 2
     figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
     color_list = ['darkmagenta', 'darkblue', 'darkcyan', 'darkorange', 'darkred']
@@ -28,7 +37,16 @@ def plot_data(phi, z_grid):
 
 
 def plot_variance(model, latent_size):
+    """
+    Plot the variance.
     
+    Arguments:
+        model (sklearn.decomposition.PCA): The PCA model.
+        latent_size (int): The latent size.
+    
+    Returns:
+        figure (matplotlib.figure.Figure): The figure.
+    """
     figure, plot = pyplot.subplots(nrows = 2, ncols = 1, figsize = (10, 10))
     
     plot[0].plot(numpy.arange(1, latent_size + 1), model.explained_variance_ratio_, color = 'black', linestyle = '-', linewidth = 2.5)
@@ -48,7 +66,17 @@ def plot_variance(model, latent_size):
 
 
 def plot_covariance(phi, bin_size, grid_size):
+    """
+    Plot the covariance.
     
+    Arguments:
+        phi (numpy.ndarray): The data.
+        bin_size (int): The bin size.
+        grid_size (int): The grid size.
+    
+    Returns:
+        figure (matplotlib.figure.Figure): The figure.
+    """
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     covariance = numpy.cov(phi, rowvar = False)

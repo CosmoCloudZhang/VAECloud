@@ -31,39 +31,59 @@ def main(path, name):
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
     with h5py.File(data_name, 'r') as file:
-        input = file['sample'][:].astype(numpy.float32)
-    
+        input = file['sample'][:].astype(numpy.float64)
     mock_size, bin_size, grid_size = input.shape
     data_size = (grid_size, bin_size)
-    latent_size = 8
     
-    phi0 = 12.0
-    phi1 = 0.00
-    phi2 = 10.0
-    input_data = numpy.transpose(input, axes = (0, 2, 1)) / phi0
-    train_data, evaluation_data = train_test_split(input_data, test_size = 0.2)
-    validation_data, test_data = train_test_split(evaluation_data, test_size = 0.5)
-    print(input_data.max(), input_data.min())
+    # Hyperparameters
+    latent_size = 8
+    epoch_size = 32
+    batch_size = 512
+    learning_rate = 0.0001
     
     # Redshift
     z1 = 0.0
     z2 = 3.0
-    z_grid = numpy.linspace(z1, z2, grid_size + 1)
+    z_delta = 0.01
+    z_data = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
     
-    rate = 0.0001
-    epoch_size = 32
-    batch_size = 512
+    # Input
+    input_mean = numpy.mean(input, axis = 0)
+    input_sigma = numpy.std(input, axis = 0)
+    input_mean = input_mean / numpy.sum(input_mean, axis = 1)[:, numpy.newaxis] / z_delta
     
+    scale = numpy.max(input_sigma, axis = 1)
+    input_data = input - numpy.stack([input_mean] * mock_size, axis = 0)
+    input_data = numpy.transpose(input_data / scale[numpy.newaxis, :, numpy.newaxis], axes = (0, 2, 1))
+    
+    index = 4
+    print(numpy.sum(input_data, axis = 1)[:, index] * z_delta)
+    print(numpy.sum(input - input_mean[numpy.newaxis, :, :], axis = 2)[:, index] * z_delta)
+    
+    print(numpy.std(input_data, axis = 0)[:, index])
+    print(numpy.max(input_data[:, :, index]), numpy.min(input_data[:, :, index]))
+    
+    # Split
+    fraction1 = 0.2 
+    fraction2 = 0.5
+    train_data, evaluation_data = train_test_split(input_data, test_size = fraction1)
+    validation_data, test_data = train_test_split(evaluation_data, test_size = fraction2)
+    
+    # Device
     devices = tensorflow.config.experimental.list_physical_devices('GPU')
     for device in devices:
         tensorflow.config.experimental.set_memory_growth(device, True)
     
+    # Model
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
         model = VAE_MODEL.VAE(latent_size, phi0, data_size, latent_size)
-        model.compile(optimizer = keras.optimizers.Adam(learning_rate = rate, clipvalue = 1.0))
+        model.compile(optimizer = keras.optimizers.Adam(learning_rate = learning_rate, clipvalue = 1.0))
     
+    # Train
     history = model.fit(train_data, shuffle = True, verbose = 'auto', epochs = epoch_size, validation_data = [validation_data, validation_data])
+    
+    # Test
     latent_mu, latent_logvar = model.encoder(test_data)
     latent_data = model.sampler(latent_mu, latent_logvar)
     
@@ -75,6 +95,7 @@ def main(path, name):
     numpy.savetxt(os.path.join(data_path, '{}/TEST_INPUT.txt'.format(name)), test_data.reshape(test_size, bin_size * grid_size))
     numpy.savetxt(os.path.join(data_path, '{}/TEST_OUTPUT.txt'.format(name)), model.predict(test_data).reshape(test_size, bin_size * grid_size))
     
+    # Figure
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
     pyplot.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'

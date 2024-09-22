@@ -27,7 +27,7 @@ def plot_loss():
 
 def plot_data():
     FIGURE, PLOT = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
-
+    
     for m in range(BIN_SIZE):
         
         PHI_QUANTILE0 = numpy.quantile(TEST_OUTPUT[:, m, :], q=0.50, axis=0)
