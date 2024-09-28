@@ -3,7 +3,7 @@ from matplotlib import colors
 from matplotlib import pyplot
 
 
-def plot_data(phi, z_grid):
+def plot_data(phi, bin_size, grid_size):
     """
     Plot the data.
     
@@ -14,21 +14,27 @@ def plot_data(phi, z_grid):
     Returns:
         figure (matplotlib.figure.Figure): The figure.
     """
-    z_grid = (z_grid[+1:] + z_grid[:-1]) / 2
+    # Redshift
+    z1 = 0.0
+    z2 = 3.0
+    z_delta = (z2 - z1) / grid_size
+    z_data = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
+    
+    # Plot
     figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
-    color_list = ['darkmagenta', 'darkblue', 'darkcyan', 'darkorange', 'darkred']
+    color_list = ['darkmagenta', 'darkblue', 'darkcyan', 'darkgreen', 'darkred']
     
     for m in range(len(color_list)):
         
         phi0 = numpy.mean(phi[:, m, :], axis = 0)
         
-        plot.plot(z_grid, phi0, color = color_list[m], linewidth = 2.0, label = r'$m = {:.0f}$'.format(m + 1))
+        plot.plot(z_data, phi0, color = color_list[m], linewidth = 2.0, label = r'$m = {:.0f}$'.format(m + 1))
         
-        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.005, alpha = 0.005)
+        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.005, alpha = 0.005)
     
     plot.legend()
+    plot.set_xlim(z1, z2)
     plot.set_ylim(0.0, 8.0)
-    plot.set_xlim(z_grid.min(), z_grid.max())
     
     plot.set_xlabel(r'$z$')
     plot.set_ylabel(r'$\phi^m (z)$')

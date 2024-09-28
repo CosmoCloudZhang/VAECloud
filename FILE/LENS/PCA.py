@@ -33,11 +33,6 @@ def main(path, name):
     data_size = bin_size * grid_size
     latent_size = 64
     
-    # Redshift
-    z1 = 0.0
-    z2 = 3.0
-    z_grid = numpy.linspace(z1, z2, grid_size + 1)
-    
     # Model
     input_data = input.reshape(mock_size, data_size)
     model = decomposition.PCA(n_components = latent_size)
@@ -56,11 +51,11 @@ def main(path, name):
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 25
     
-    figure = PCA_FIGURE.plot_data(input[select, :, :], z_grid)
+    figure = PCA_FIGURE.plot_data(input[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/PCA/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
     pyplot.close(figure)
     
-    figure = PCA_FIGURE.plot_data(output[select, :, :], z_grid)
+    figure = PCA_FIGURE.plot_data(output[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/PCA/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
     pyplot.close(figure)
     

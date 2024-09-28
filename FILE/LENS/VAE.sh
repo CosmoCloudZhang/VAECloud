@@ -12,7 +12,10 @@
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
-module load tensorflow/2.9.0
+module load tensorflow
+module load PrgEnv-gnu
+module load cray-mpich/8.1.28
+module load cray-hdf5-parallel
 
 # Run the application
 NAME="LENS"
