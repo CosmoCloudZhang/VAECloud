@@ -34,9 +34,11 @@ def plot_loss(epoch_size, history):
     plot.plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5)
     
     plot.set_yscale('log')
-    plot.set_xlim(1, epoch_size)
+    plot.set_xscale('linear')
     
     plot.legend()
+    plot.set_xlim(1, epoch_size)
+    
     plot.set_xlabel(r'$\mathrm{Epochs}$')
     plot.set_ylabel(r'$\mathrm{Losses}$')
     
@@ -141,6 +143,7 @@ def main(path, name):
     history = info['HISTORY']
     bin_size = info['META']['BIN_SIZE']
     grid_size = info['META']['GRID_SIZE']
+    mock_size = info['META']['MOCK_SIZE']
     epoch_size = info['META']['EPOCH_SIZE']
     latent_size = info['META']['LATENT_SIZE']
     
@@ -157,17 +160,21 @@ def main(path, name):
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 25
     
+    # Plot
+    plot_size = mock_size // 40
+    select = numpy.random.choice(numpy.arange(mock_size), plot_size, replace = False)
+    
     # Loss
     figure = plot_loss(epoch_size, history)
     figure.savefig(os.path.join(plot_path, '{}/VAE/LOSS.pdf'.format(name)), bbox_inches = 'tight')
     figure.clear()
     
     # Data
-    figure = plot_data(test_input, bin_size, grid_size)
+    figure = plot_data(test_input[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
     figure.clear()
     
-    figure = plot_data(test_output, bin_size, grid_size)
+    figure = plot_data(test_output[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
     figure.clear()
     
