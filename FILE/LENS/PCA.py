@@ -147,7 +147,7 @@ def main(path, name):
     pyplot.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'
     pyplot.rcParams['text.usetex'] = True
-    pyplot.rcParams['font.size'] = 25
+    pyplot.rcParams['font.size'] = 20
     
     figure = plot_data(input[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/PCA/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')

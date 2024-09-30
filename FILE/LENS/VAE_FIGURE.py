@@ -23,15 +23,15 @@ def plot_loss(epoch_size, history):
     
     plot.plot(epoch, history['divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
     
-    plot.plot(epoch, history['val_all_loss'], color = 'black', linestyle = '-', linewidth = 2.5)
+    plot.plot(epoch, history['val_all_loss'], color = 'black', linestyle = '--', linewidth = 2.5)
     
-    plot.plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5)
+    plot.plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '--', linewidth = 2.5)
     
-    plot.plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5)
+    plot.plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '--', linewidth = 2.5)
     
-    plot.plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5)
+    plot.plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '--', linewidth = 2.5)
     
-    plot.plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5)
+    plot.plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '--', linewidth = 2.5)
     
     plot.set_yscale('log')
     plot.set_xscale('linear')
@@ -117,6 +117,7 @@ def plot_latent(latent_data, latent_size):
         labels=[r'$\xi_{}$'.format(i + 1) for i in range(latent_size)]
     )
     
+    
     return figure
 
 
@@ -148,7 +149,7 @@ def main(path, name):
     latent_size = info['META']['LATENT_SIZE']
     
     # Model
-    with h5py.File(os.path.join(data_path, '{}/MODEL.hdf5'.format(name)), 'r') as file:
+    with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'r') as file:
         test_input = numpy.array(file['TEST_INPUT'])
         test_output = numpy.array(file['TEST_OUTPUT'])
         latent_data = numpy.array(file['LATENT_DATA'])
@@ -158,11 +159,12 @@ def main(path, name):
     pyplot.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'
     pyplot.rcParams['text.usetex'] = True
-    pyplot.rcParams['font.size'] = 25
+    pyplot.rcParams['font.size'] = 20
     
     # Plot
+    test_size = mock_size // 10
     plot_size = mock_size // 40
-    select = numpy.random.choice(numpy.arange(mock_size), plot_size, replace = False)
+    select = numpy.random.choice(numpy.arange(test_size), plot_size, replace = False)
     
     # Loss
     figure = plot_loss(epoch_size, history)
