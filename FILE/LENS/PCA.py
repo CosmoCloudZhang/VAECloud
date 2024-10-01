@@ -129,7 +129,7 @@ def main(path, name):
     
     mock_size, bin_size, grid_size = input.shape
     data_size = bin_size * grid_size
-    latent_size = 64
+    latent_size = 128
     
     # Model
     input_data = input.reshape(mock_size, data_size)
