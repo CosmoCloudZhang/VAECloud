@@ -39,13 +39,16 @@ class Encoder(Layer):
         super(Encoder, self).__init__()
         self.encoder = Sequential()
         
-        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 256)
-        self.encoder.add(Dense(units=256, kernel_initializer=HeNormal()))
+        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 512)
+        self.encoder.add(Dense(units=512, kernel_initializer=HeNormal()))
+        self.encoder.add(BatchNormalization())
+        self.encoder.add(LeakyReLU())
+        self.encoder.add(Dropout(0.2))
         
-        # Reshape the data from (bin_size, 256) to (256, bin_size)
+        # Reshape the data from (bin_size, 512) to (512, bin_size)
         self.encoder.add(Permute((2, 1)))
         
-        # Use Conv1D layers to modify the data from (256, bin_size) to (256, 128)
+        # Use Conv1D layers to modify the data from (512, bin_size) to (512, 128)
         self.encoder.add(Conv1D(
             strides=1, 
             filters=128, 
@@ -61,7 +64,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (256, 128) to (128, 256)
+        # Use Conv1D layers to modify the data from (512, 128) to (256, 256)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=256, 
@@ -77,7 +80,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (128, 256) to (64, 512)
+        # Use Conv1D layers to modify the data from (256, 256) to (128, 512)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=512, 
@@ -93,7 +96,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (64, 512) to (32, 1024)
+        # Use Conv1D layers to modify the data from (128, 512) to (64, 1024)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=1024, 
@@ -109,10 +112,10 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Flatten the data from (32, 1024) to (32 * 1024)
+        # Flatten the data from (64, 1024) to (64 * 1024)
         self.encoder.add(Flatten())
         
-        # Use Dense layers to modify the data from (32 * 1024) to (latent_size)
+        # Use Dense layers to modify the data from (64 * 1024) to (latent_size)
         self.mu = Dense(
             units=latent_size, 
             bias_regularizer=L2(0.01),
@@ -172,9 +175,9 @@ class Decoder(Layer):
         super(Decoder, self).__init__()
         self.decoder = Sequential()
         
-        # Use Dense layers to modify the data from (latent_size) to (32 * 1024)
+        # Use Dense layers to modify the data from (latent_size) to (64 * 1024)
         self.decoder.add(Dense(
-            units=32 * 1024, 
+            units=64 * 1024, 
             bias_regularizer=L2(0.01),
             kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
@@ -185,10 +188,10 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Reshape the data from (32 * 1024) to (32, 1024)
-        self.decoder.add(Reshape((32, 1024)))
+        # Reshape the data from (64 * 1024) to (64, 1024)
+        self.decoder.add(Reshape((64, 1024)))
         
-        # Use Conv1DTranspose layers to modify the data from (32, 1024) to (64, 512)
+        # Use Conv1DTranspose layers to modify the data from (64, 1024) to (128, 512)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=512,
@@ -204,7 +207,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 256)
+        # Use Conv1DTranspose layers to modify the data from (128, 512) to (256, 256)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=256,
@@ -220,7 +223,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (128, 256) to (256, 128)
+        # Use Conv1DTranspose layers to modify the data from (256, 256) to (512, 128)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=128,
@@ -236,7 +239,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (256, 128) to (256, bin_size)
+        # Use Conv1DTranspose layers to modify the data from (512, 128) to (512, bin_size)
         self.decoder.add(Conv1DTranspose(
             strides=1, 
             kernel_size=2, 
@@ -252,10 +255,10 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Reshape the data from (256, bin_size) to (bin_size, 256)
+        # Reshape the data from (512, bin_size) to (bin_size, 512)
         self.decoder.add(Permute((2, 1)))
         
-        # Use Dense layers to modify the data from (bin_size, 256) to (bin_size, grid_size)
+        # Use Dense layers to modify the data from (bin_size, 512) to (bin_size, grid_size)
         self.decoder.add(Dense(
             units=grid_size, 
             activation='softmax',
@@ -498,8 +501,6 @@ def main(path, name):
     '''
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
-    plot_path = os.path.join(path, 'PLOT/')
-    os.makedirs(os.path.join(plot_path, '{}/VAE/'.format(name)), exist_ok = True)
     
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
@@ -524,7 +525,7 @@ def main(path, name):
         tensorflow.config.experimental.set_memory_growth(device, True)
     
     # Hyperparameters
-    latent_size = 8
+    latent_size = 5
     epoch_size = 256
     batch_size = 512
     learning_rate = 1e-5
@@ -577,7 +578,7 @@ def main(path, name):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='FZB VAE')
+    PARSE = argparse.ArgumentParser(description='VAE')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
     

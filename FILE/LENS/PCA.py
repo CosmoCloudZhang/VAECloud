@@ -180,7 +180,7 @@ def main(path, name):
 if __name__ == '__main__':
     
     # Input
-    PARSE = argparse.ArgumentParser(description='FZB PCA')
+    PARSE = argparse.ArgumentParser(description='PCA')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
     

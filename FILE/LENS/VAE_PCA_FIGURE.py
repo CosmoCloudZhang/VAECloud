@@ -9,7 +9,7 @@ from matplotlib import pyplot, colors
 
 def plot_loss(epoch_size, history):
     
-    figure, plot = pyplot.subplots(nrows = 1, ncols = 2, sharey=True, figsize = (16, 8))
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 2, figsize = (16, 8))
     
     epoch = numpy.arange(1, epoch_size + 1)
     
@@ -39,6 +39,7 @@ def plot_loss(epoch_size, history):
     plot[1].set_xscale('linear')
     
     plot[1].set_xticklabels([])
+    plot[1].set_yticklabels([])
     plot[1].set_xlim(1, epoch_size)
     
     plot[1].set_xlabel(r'$\mathrm{Epochs}$')
@@ -139,10 +140,10 @@ def main(path, name):
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
     plot_path = os.path.join(path, 'PLOT/')
-    os.makedirs(os.path.join(plot_path, '{}/VAE/'.format(name)), exist_ok = True)
+    os.makedirs(os.path.join(plot_path, '{}/VAE_PCA/'.format(name)), exist_ok = True)
     
     # Meta
-    with open(os.path.join(data_path, '{}/INFO.json'.format(name)), 'r') as file:
+    with open(os.path.join(data_path, '{}/INFO_PCA.json'.format(name)), 'r') as file:
         info = json.load(file)
     
     history = info['HISTORY']
@@ -153,7 +154,7 @@ def main(path, name):
     latent_size = info['META']['LATENT_SIZE']
     
     # Model
-    with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'r') as file:
+    with h5py.File(os.path.join(data_path, '{}/DATA_PCA.hdf5'.format(name)), 'r') as file:
         test_input = numpy.array(file['TEST_INPUT'])
         test_output = numpy.array(file['TEST_OUTPUT'])
         latent_data = numpy.array(file['LATENT_DATA'])
@@ -172,31 +173,31 @@ def main(path, name):
     
     # Loss
     figure = plot_loss(epoch_size, history)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/LOSS.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/LOSS.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     # Data
     figure = plot_data(test_input[select, :, :], bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     figure = plot_data(test_output[select, :, :], bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     # Covariance
     figure = plot_covariance(test_input, bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/INPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/INPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     figure = plot_covariance(test_output, bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/OUTPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/OUTPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     # Latent
     figure = plot_latent(latent_data, latent_size)
-    figure.savefig(os.path.join(plot_path, '{}/VAE/LATENT.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    figure.savefig(os.path.join(plot_path, '{}/VAE_PCA/LATENT.pdf'.format(name)), bbox_inches = 'tight')
+    pyplot.close(figure)
     
     # Return
     end = time.time()
@@ -208,7 +209,7 @@ def main(path, name):
 if __name__ == '__main__':
     
     # Input
-    PARSE = argparse.ArgumentParser(description='FZB VAE')
+    PARSE = argparse.ArgumentParser(description='VAE PCA Figure')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
     

@@ -9,7 +9,7 @@ from matplotlib import pyplot, colors
 
 def plot_loss(epoch_size, history):
     
-    figure, plot = pyplot.subplots(nrows = 1, ncols = 2, sharey=True, figsize = (16, 8))
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 2, figsize = (16, 8))
     
     epoch = numpy.arange(1, epoch_size + 1)
     
@@ -47,11 +47,13 @@ def plot_loss(epoch_size, history):
     plot[1].set_xscale('linear')
     
     plot[1].set_xticklabels([])
+    plot[1].set_yticklabels([])
     plot[1].set_xlim(1, epoch_size)
     
     plot[1].set_xlabel(r'$\mathrm{Epochs}$')
     plot[1].set_title(r'$\mathrm{Validation}$')
     
+    figure.subplots_adjust(wspace = 0.00)
     return figure
 
 
@@ -180,30 +182,30 @@ def main(path, name):
     # Loss
     figure = plot_loss(epoch_size, history)
     figure.savefig(os.path.join(plot_path, '{}/VAE/LOSS.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     # Data
     figure = plot_data(test_input[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     figure = plot_data(test_output[select, :, :], bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     # Covariance
     figure = plot_covariance(test_input, bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/INPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     figure = plot_covariance(test_output, bin_size, grid_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/OUTPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     # Latent
     figure = plot_latent(latent_data, latent_size)
     figure.savefig(os.path.join(plot_path, '{}/VAE/LATENT.pdf'.format(name)), bbox_inches = 'tight')
-    figure.clear()
+    pyplot.close(figure)
     
     # Return
     end = time.time()
@@ -215,7 +217,7 @@ def main(path, name):
 if __name__ == '__main__':
     
     # Input
-    PARSE = argparse.ArgumentParser(description='FZB VAE')
+    PARSE = argparse.ArgumentParser(description='VAE Figure')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
     

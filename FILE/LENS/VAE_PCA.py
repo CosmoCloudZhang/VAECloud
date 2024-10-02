@@ -457,8 +457,6 @@ def main(path, name):
     '''
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
-    plot_path = os.path.join(path, 'PLOT/')
-    os.makedirs(os.path.join(plot_path, '{}/VAE/'.format(name)), exist_ok = True)
     
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
@@ -471,7 +469,7 @@ def main(path, name):
     input_data = numpy.maximum(input, 0.0)
     input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
     
-    pca_size = 128
+    pca_size = 64
     data_size = bin_size * grid_size
     input_data = input_data.reshape(mock_size, data_size)
     
@@ -510,7 +508,7 @@ def main(path, name):
     latent_data = model.sampler(latent_mu, latent_logvar)
     
     # Save
-    model.save(os.path.join(data_path, '{}/MODEL'.format(name)))
+    model.save(os.path.join(data_path, '{}/MODEL_PCA'.format(name)))
     
     meta = {
         'BIN_SIZE': bin_size,
@@ -523,10 +521,10 @@ def main(path, name):
     }
     
     info = {'META': meta, 'HISTORY': history.history}
-    with open(os.path.join(data_path, '{}/INFO.json'.format(name)), 'w') as file:
+    with open(os.path.join(data_path, '{}/INFO_PCA.json'.format(name)), 'w') as file:
         json.dump(info, file, indent=4)
     
-    with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
+    with h5py.File(os.path.join(data_path, '{}/DATA_PCA.hdf5'.format(name)), 'w') as file:
         file.create_dataset('TEST_INPUT', data=test_input)
         file.create_dataset('TEST_OUTPUT', data=test_output)
         file.create_dataset('LATENT_DATA', data=latent_data)
@@ -541,7 +539,7 @@ def main(path, name):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='FZB VAE')
+    PARSE = argparse.ArgumentParser(description='VAE PCA')
     PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
     
