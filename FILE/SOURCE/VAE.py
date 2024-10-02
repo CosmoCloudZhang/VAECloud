@@ -39,16 +39,16 @@ class Encoder(Layer):
         super(Encoder, self).__init__()
         self.encoder = Sequential()
         
-        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 512)
-        self.encoder.add(Dense(units=512, kernel_initializer=HeNormal()))
+        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 256)
+        self.encoder.add(Dense(units=256, kernel_initializer=HeNormal()))
         self.encoder.add(BatchNormalization())
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Reshape the data from (bin_size, 512) to (512, bin_size)
+        # Reshape the data from (bin_size, 256) to (256, bin_size)
         self.encoder.add(Permute((2, 1)))
         
-        # Use Conv1D layers to modify the data from (512, bin_size) to (512, 128)
+        # Use Conv1D layers to modify the data from (256, bin_size) to (256, 128)
         self.encoder.add(Conv1D(
             strides=1, 
             filters=128, 
@@ -64,7 +64,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (512, 128) to (256, 256)
+        # Use Conv1D layers to modify the data from (256, 128) to (128, 256)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=256, 
@@ -80,7 +80,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (256, 256) to (128, 512)
+        # Use Conv1D layers to modify the data from (128, 256) to (64, 512)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=512, 
@@ -96,7 +96,7 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (128, 512) to (64, 1024)
+        # Use Conv1D layers to modify the data from (64, 512) to (32, 1024)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=1024, 
@@ -112,10 +112,10 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Flatten the data from (64, 1024) to (64 * 1024)
+        # Flatten the data from (32, 1024) to (32 * 1024)
         self.encoder.add(Flatten())
         
-        # Use Dense layers to modify the data from (64 * 1024) to (latent_size)
+        # Use Dense layers to modify the data from (32 * 1024) to (latent_size)
         self.mu = Dense(
             units=latent_size, 
             bias_regularizer=L2(0.01),
@@ -175,9 +175,9 @@ class Decoder(Layer):
         super(Decoder, self).__init__()
         self.decoder = Sequential()
         
-        # Use Dense layers to modify the data from (latent_size) to (64 * 1024)
+        # Use Dense layers to modify the data from (latent_size) to (32 * 1024)
         self.decoder.add(Dense(
-            units=64 * 1024, 
+            units=32 * 1024, 
             bias_regularizer=L2(0.01),
             kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
@@ -188,10 +188,10 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Reshape the data from (64 * 1024) to (64, 1024)
-        self.decoder.add(Reshape((64, 1024)))
+        # Reshape the data from (32 * 1024) to (32, 1024)
+        self.decoder.add(Reshape((32, 1024)))
         
-        # Use Conv1DTranspose layers to modify the data from (64, 1024) to (128, 512)
+        # Use Conv1DTranspose layers to modify the data from (32, 1024) to (64, 512)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=512,
@@ -207,7 +207,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (128, 512) to (256, 256)
+        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 256)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=256,
@@ -223,7 +223,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (256, 256) to (512, 128)
+        # Use Conv1DTranspose layers to modify the data from (128, 256) to (256, 128)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=128,
@@ -239,7 +239,7 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (512, 128) to (512, bin_size)
+        # Use Conv1DTranspose layers to modify the data from (256, 128) to (256, bin_size)
         self.decoder.add(Conv1DTranspose(
             strides=1, 
             kernel_size=2, 
@@ -255,10 +255,10 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Reshape the data from (512, bin_size) to (bin_size, 512)
+        # Reshape the data from (256, bin_size) to (bin_size, 256)
         self.decoder.add(Permute((2, 1)))
         
-        # Use Dense layers to modify the data from (bin_size, 512) to (bin_size, grid_size)
+        # Use Dense layers to modify the data from (bin_size, 256) to (bin_size, grid_size)
         self.decoder.add(Dense(
             units=grid_size, 
             activation='softmax',
@@ -291,7 +291,7 @@ class VAE(Model):
     Returns:
         None
     '''
-    def __init__(self, alpha, delta, scale, bin_size, grid_size, latent_size):
+    def __init__(self, alpha, delta, bin_size, grid_size, latent_size):
         '''
         Initialization function for the VAE.
         
@@ -306,7 +306,6 @@ class VAE(Model):
         
         self.alpha = alpha
         self.delta = delta
-        self.scale = scale
         self.encoder = Encoder(latent_size)
         self.decoder = Decoder(bin_size, grid_size)
         
@@ -327,10 +326,11 @@ class VAE(Model):
             output_data (numpy.ndarray): The output data.
         '''
         
-        latent_mu, latent_logvar = self.encoder(input_data / self.scale)
+        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
+        latent_mu, latent_logvar = self.encoder(input_data / scale)
         latent_data = self.sampler(latent_mu, latent_logvar)
         
-        output_data = self.decoder(latent_data) * self.scale
+        output_data = self.decoder(latent_data) * scale
         output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
         
         return output_data
@@ -429,10 +429,11 @@ class VAE(Model):
         '''
         with tensorflow.GradientTape() as tape:
             
-            latent_mu, latent_logvar = self.encoder(input_data / self.scale)
+            scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
+            latent_mu, latent_logvar = self.encoder(input_data / scale)
             latent_data = self.sampler(latent_mu, latent_logvar)
             
-            output_data = self.decoder(latent_data) * self.scale
+            output_data = self.decoder(latent_data) * scale
             output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
             
             mean_loss = self.mean_loss(input_data, output_data)
@@ -466,10 +467,11 @@ class VAE(Model):
         '''
         input_data, input_data = validation_data
         
-        latent_mu, latent_logvar = self.encoder(input_data / self.scale)
+        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
+        latent_mu, latent_logvar = self.encoder(input_data / scale)
         latent_data = self.sampler(latent_mu, latent_logvar)
         
-        output_data = self.decoder(latent_data) * self.scale
+        output_data = self.decoder(latent_data) * scale
         output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
         
         mean_loss = self.mean_loss(input_data, output_data)
@@ -510,10 +512,9 @@ def main(path, name):
     
     # Input
     delta = 0.01
-    scale = 10.0
     input_data = numpy.maximum(input, 0.0)
     input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
-    print('Input:', input_data.min(), input_data.max())
+    del input
     
     # Split
     train_data, evaluation_data = train_test_split(input_data, test_size=0.2)
@@ -526,47 +527,43 @@ def main(path, name):
     
     # Hyperparameters
     latent_size = 5
-    epoch_size = 256
-    batch_size = 512
-    learning_rate = 1e-5
-    alpha = (1.0, 10.0, 100.0)
+    epoch_size = 512
+    batch_size = 1024
+    learning_rate = 5e-6
+    alpha = (10.0, 100.0, 1000.0)
     
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
-        model = VAE(alpha, delta, scale, bin_size, grid_size, latent_size)
+        model = VAE(alpha, delta, bin_size, grid_size, latent_size)
         model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
         history = model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
-    
-    # Test
-    test_output = model.predict(test_data)
-    print('Output:', test_output.min(), test_output.max())
-    
-    # Latent
-    latent_mu, latent_logvar = model.encoder(test_data)
-    latent_data = model.sampler(latent_mu, latent_logvar)
-    
-    # Save
-    model.save(os.path.join(data_path, '{}/MODEL'.format(name)))
-    
-    meta = {
-        'BIN_SIZE': bin_size,
-        'GRID_SIZE': grid_size,
-        'MOCK_SIZE': mock_size,
-        'EPOCH_SIZE': epoch_size,
-        'BATCH_SIZE': batch_size,
-        'LATENT_SIZE': latent_size,
-        'LEARNING_RATE': learning_rate
-    }
-    
-    info = {'META': meta, 'HISTORY': history.history}
-    with open(os.path.join(data_path, '{}/INFO.json'.format(name)), 'w') as file:
-        json.dump(info, file, indent=4)
-    
-    with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
-        file.create_dataset('TEST_INPUT', data=test_data)
-        file.create_dataset('TEST_OUTPUT', data=test_output)
-        file.create_dataset('LATENT_DATA', data=latent_data)
+        
+        test_output = model.predict(test_data)
+        latent_mu, latent_logvar = model.encoder(test_data)
+        latent_data = model.sampler(latent_mu, latent_logvar)
+        
+        # Save
+        model.save(os.path.join(data_path, '{}/MODEL'.format(name)))
+        
+        meta = {
+            'BIN_SIZE': bin_size,
+            'GRID_SIZE': grid_size,
+            'MOCK_SIZE': mock_size,
+            'EPOCH_SIZE': epoch_size,
+            'BATCH_SIZE': batch_size,
+            'LATENT_SIZE': latent_size,
+            'LEARNING_RATE': learning_rate
+        }
+        
+        info = {'META': meta, 'HISTORY': history.history}
+        with open(os.path.join(data_path, '{}/INFO.json'.format(name)), 'w') as file:
+            json.dump(info, file, indent=4)
+        
+        with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
+            file.create_dataset('TEST_INPUT', data=test_data)
+            file.create_dataset('TEST_OUTPUT', data=test_output)
+            file.create_dataset('LATENT_DATA', data=latent_data)
     
     # Duration
     end = time.time()

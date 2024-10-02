@@ -102,7 +102,7 @@ def plot_covariance(phi, bin_size, grid_size):
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     covariance = numpy.cov(data, rowvar = False)
-    norm = colors.Normalize(vmin = -0.1, vmax = +0.1)
+    norm = colors.Normalize(vmin = -0.075, vmax = 0.075)
     
     for m in range(bin_size):
         for n in range(bin_size):
