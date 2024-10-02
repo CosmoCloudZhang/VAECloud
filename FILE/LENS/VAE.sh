@@ -1,9 +1,9 @@
 #!/bin/bash
+#SBATCH -J VAE
 #SBATCH -A m1727
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH -q regular
-#SBATCH -J FZB_PCA
 #SBATCH --time=04:00:00
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu

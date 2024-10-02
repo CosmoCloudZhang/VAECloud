@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH -q regular
-#SBATCH -J FZB_PCA
+#SBATCH -J VAE_FIGURE
 #SBATCH --time=04:00:00
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu

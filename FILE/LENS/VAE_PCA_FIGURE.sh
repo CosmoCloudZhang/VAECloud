@@ -3,11 +3,11 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH -q regular
-#SBATCH -J FZB_PCA
 #SBATCH --time=04:00:00
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu
 #SBATCH -o LOG/%x_%j.out
+#SBATCH -J VAE_PCA_FIGURE
 #SBATCH --cpus-per-task=128
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
