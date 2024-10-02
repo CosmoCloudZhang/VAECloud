@@ -49,7 +49,7 @@ class Encoder(Layer):
         self.encoder.add(Conv1D(
             strides=1, 
             filters=128, 
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -65,7 +65,7 @@ class Encoder(Layer):
         self.encoder.add(Conv1D(
             strides=2, 
             filters=256, 
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -81,7 +81,7 @@ class Encoder(Layer):
         self.encoder.add(Conv1D(
             strides=2, 
             filters=512, 
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -97,7 +97,7 @@ class Encoder(Layer):
         self.encoder.add(Conv1D(
             strides=2, 
             filters=1024, 
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -192,7 +192,7 @@ class Decoder(Layer):
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=512,
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -208,7 +208,7 @@ class Decoder(Layer):
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=256,
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -224,7 +224,7 @@ class Decoder(Layer):
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=128,
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -239,7 +239,7 @@ class Decoder(Layer):
         # Use Conv1DTranspose layers to modify the data from (256, 128) to (256, bin_size)
         self.decoder.add(Conv1DTranspose(
             strides=1, 
-            kernel_size=3, 
+            kernel_size=2, 
             padding='same', 
             filters=bin_size,
             bias_regularizer=L2(0.01), 
@@ -370,7 +370,7 @@ class VAE(Model):
         '''
         input_scatter = math.reduce_std(input_data, axis=0)
         output_scatter = math.reduce_std(output_data, axis=0)
-        return math.reduce_mean(losses.mean_absolute_error(input_scatter, output_scatter))
+        return math.reduce_mean(losses.mean_squared_error(input_scatter, output_scatter))
     
     def covariance_loss(self, input_data, output_data):
         '''
@@ -525,10 +525,10 @@ def main(path, name):
     
     # Hyperparameters
     latent_size = 8
-    epoch_size = 128
-    batch_size = 256
+    epoch_size = 256
+    batch_size = 512
     learning_rate = 1e-5
-    alpha = (1.0, 1.0, 1.0)
+    alpha = (1.0, 10.0, 100.0)
     
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()

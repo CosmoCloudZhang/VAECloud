@@ -9,38 +9,48 @@ from matplotlib import pyplot, colors
 
 def plot_loss(epoch_size, history):
     
-    figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 12))
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 2, sharey=True, figsize = (16, 8))
     
     epoch = numpy.arange(1, epoch_size + 1)
     
-    plot.plot(epoch, history['all_loss'], color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
+    plot[0].plot(epoch, history['all_loss'], color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot.plot(epoch, history['mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
+    plot[0].plot(epoch, history['mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot.plot(epoch, history['scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
+    plot[0].plot(epoch, history['scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
     
-    plot.plot(epoch, history['covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
+    plot[0].plot(epoch, history['covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot.plot(epoch, history['divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
+    plot[0].plot(epoch, history['divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
     
-    plot.plot(epoch, history['val_all_loss'], color = 'black', linestyle = '--', linewidth = 2.5)
+    plot[0].set_yscale('log')
+    plot[0].set_xscale('linear')
     
-    plot.plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '--', linewidth = 2.5)
+    plot[0].legend()
+    plot[0].set_xlim(1, epoch_size)
     
-    plot.plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '--', linewidth = 2.5)
+    plot[0].set_title(r'$\mathrm{Train}$')
+    plot[0].set_xlabel(r'$\mathrm{Epochs}$')
+    plot[0].set_ylabel(r'$\mathrm{Losses}$')
     
-    plot.plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '--', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_all_loss'], color = 'black', linestyle = '-', linewidth = 2.5)
     
-    plot.plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '--', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5)
     
-    plot.set_yscale('log')
-    plot.set_xscale('linear')
+    plot[1].plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5)
     
-    plot.legend()
-    plot.set_xlim(1, epoch_size)
+    plot[1].plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5)
     
-    plot.set_xlabel(r'$\mathrm{Epochs}$')
-    plot.set_ylabel(r'$\mathrm{Losses}$')
+    plot[1].plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5)
+    
+    plot[1].set_yscale('log')
+    plot[1].set_xscale('linear')
+    
+    plot[1].set_xticklabels([])
+    plot[1].set_xlim(1, epoch_size)
+    
+    plot[1].set_xlabel(r'$\mathrm{Epochs}$')
+    plot[1].set_title(r'$\mathrm{Validation}$')
     
     return figure
 
@@ -54,6 +64,8 @@ def plot_data(phi, bin_size, grid_size):
     z_data = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
     
     figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
+    # Plot
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
     color_list = ['darkmagenta', 'darkblue', 'darkcyan', 'darkgreen', 'darkred']
     
     for m in range(bin_size):
@@ -62,8 +74,7 @@ def plot_data(phi, bin_size, grid_size):
         
         plot.plot(z_data, phi0, color = color_list[m], linewidth = 2.0, label = r'$m = {:.0f}$'.format(m + 1))
         
-        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.005, alpha = 0.005)
-    
+        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.01, alpha = 0.01)
     plot.legend()
     plot.set_xlim(z1, z2)
     plot.set_ylim(0.0, 8.0)
