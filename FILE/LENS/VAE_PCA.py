@@ -8,8 +8,8 @@ from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
 import tensorflow
-from tensorflow import math, keras, linalg
 from tensorflow_probability import stats
+from tensorflow import math, keras, linalg
 
 from keras.regularizers import L2
 from keras.initializers import HeNormal
@@ -498,36 +498,35 @@ def main(path, name):
         model = VAE(alpha, pca_size, latent_size)
         model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
         history = model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
-    
-    # Test
-    test_input = pca.inverse_transform(test_data).reshape(-1, bin_size, grid_size)
-    test_output = pca.inverse_transform(model.predict(test_data)).reshape(-1, bin_size, grid_size)
-    
-    # Latent
-    latent_mu, latent_logvar = model.encoder(test_data)
-    latent_data = model.sampler(latent_mu, latent_logvar)
-    
-    # Save
-    model.save(os.path.join(data_path, '{}/MODEL_PCA'.format(name)))
-    
-    meta = {
-        'BIN_SIZE': bin_size,
-        'GRID_SIZE': grid_size,
-        'MOCK_SIZE': mock_size,
-        'EPOCH_SIZE': epoch_size,
-        'BATCH_SIZE': batch_size,
-        'LATENT_SIZE': latent_size,
-        'LEARNING_RATE': learning_rate
-    }
-    
-    info = {'META': meta, 'HISTORY': history.history}
-    with open(os.path.join(data_path, '{}/INFO_PCA.json'.format(name)), 'w') as file:
-        json.dump(info, file, indent=4)
-    
-    with h5py.File(os.path.join(data_path, '{}/DATA_PCA.hdf5'.format(name)), 'w') as file:
-        file.create_dataset('TEST_INPUT', data=test_input)
-        file.create_dataset('TEST_OUTPUT', data=test_output)
-        file.create_dataset('LATENT_DATA', data=latent_data)
+        
+        test_input = pca.inverse_transform(test_data).reshape(-1, bin_size, grid_size)
+        test_output = pca.inverse_transform(model.predict(test_data)).reshape(-1, bin_size, grid_size)
+        
+        # Latent
+        latent_mu, latent_logvar = model.encoder(test_data)
+        latent_data = model.sampler(latent_mu, latent_logvar)
+        
+        # Save
+        model.save(os.path.join(data_path, '{}/MODEL_PCA'.format(name)))
+        
+        meta = {
+            'BIN_SIZE': bin_size,
+            'GRID_SIZE': grid_size,
+            'MOCK_SIZE': mock_size,
+            'EPOCH_SIZE': epoch_size,
+            'BATCH_SIZE': batch_size,
+            'LATENT_SIZE': latent_size,
+            'LEARNING_RATE': learning_rate
+        }
+        
+        info = {'META': meta, 'HISTORY': history.history}
+        with open(os.path.join(data_path, '{}/INFO_PCA.json'.format(name)), 'w') as file:
+            json.dump(info, file, indent=4)
+        
+        with h5py.File(os.path.join(data_path, '{}/DATA_PCA.hdf5'.format(name)), 'w') as file:
+            file.create_dataset('TEST_INPUT', data=test_input)
+            file.create_dataset('TEST_OUTPUT', data=test_output)
+            file.create_dataset('LATENT_DATA', data=latent_data)
     
     # Duration
     end = time.time()

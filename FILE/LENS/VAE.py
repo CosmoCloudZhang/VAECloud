@@ -3,6 +3,7 @@ import time
 import json
 import h5py
 import numpy
+import random
 import argparse
 from sklearn.model_selection import train_test_split
 
@@ -529,8 +530,14 @@ def main(path, name):
     latent_size = 5
     epoch_size = 512
     batch_size = 1024
-    learning_rate = 1e-5
-    alpha = (10.0, 100.0, 1000.0)
+    learning_rate = 5e-5
+    alpha = (5.0, 25.0, 50.0)
+    
+    # Seed
+    seed = 1
+    random.seed(seed)
+    numpy.random.seed(seed)
+    tensorflow.random.set_seed(seed)
     
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()

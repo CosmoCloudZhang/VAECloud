@@ -131,11 +131,16 @@ def main(path, name):
     data_size = bin_size * grid_size
     latent_size = 128
     
-    # Model
-    input_data = input.reshape(mock_size, data_size)
-    model = decomposition.PCA(n_components = latent_size)
+    # Input
+    delta = 0.01
+    input = numpy.maximum(input, 0.0)
+    input = input / numpy.sum(input, axis = 2, keepdims = True) / delta
+    input_data = numpy.reshape(input, mock_size, data_size)
     
+    # PCA
+    model = decomposition.PCA(n_components = latent_size)
     latent_data = model.fit_transform(input_data)
+    
     output_data = model.inverse_transform(latent_data)
     output = output_data.reshape(mock_size, bin_size, grid_size)
     
