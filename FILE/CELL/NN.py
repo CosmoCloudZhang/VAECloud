@@ -97,7 +97,7 @@ def main(path, name):
     grid_size = info['META']['GRID_SIZE']
     mock_size = info['META']['MOCK_SIZE']
     data_size = mock_size // 10
-    plot_size = mock_size // 40
+    plot_size = mock_size // 100
     
     # Model
     with h5py.File(os.path.join(data_path, 'LENS/DATA.hdf5'), 'r') as file:
@@ -124,7 +124,6 @@ def main(path, name):
     )
     
     power_ccl = cosmology_ccl.get_nonlin_power(name='delta_matter:delta_matter')
-    linear_power_ccl = cosmology_ccl.get_linear_power(name='delta_matter:delta_matter')
     
     # Redshift
     z1 = 0.0
@@ -150,11 +149,11 @@ def main(path, name):
             
             input_tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology_ccl, dndz=(z_data, lens_input[k, m,:]), bias=(z_data, bias_data), mag_bias=None, has_rsd=False, n_samples=grid_size)
             input_tracer2 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology_ccl, dndz=(z_data, lens_input[k, n,:]), bias=(z_data, bias_data), mag_bias=None, has_rsd=False, n_samples=grid_size)
-            input_data[k, m, n] = pyccl.cells.angular_cl(cosmo=cosmology_ccl, tracer1=input_tracer1, tracer2=input_tracer2, ell=ell_data, p_of_k_a=power_ccl, p_of_k_a_lin=linear_power_ccl, l_limber=-1, limber_max_error=0.001, limber_integration_method='spline')
+            input_data[k, m, n] = pyccl.cells.angular_cl(cosmo=cosmology_ccl, tracer1=input_tracer1, tracer2=input_tracer2, ell=ell_data, p_of_k_a=power_ccl, l_limber=-1, limber_max_error=0.01, limber_integration_method='spline')
             
             output_tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology_ccl, dndz=(z_data, lens_output[k, m,:]), bias=(z_data, bias_data), mag_bias=None, has_rsd=False, n_samples=grid_size)
             output_tracer2 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology_ccl, dndz=(z_data, lens_output[k, n,:]), bias=(z_data, bias_data), mag_bias=None, has_rsd=False, n_samples=grid_size)
-            output_data[k, m, n] = pyccl.cells.angular_cl(cosmo=cosmology_ccl, tracer1=output_tracer1, tracer2=output_tracer2, ell=ell_data, p_of_k_a=power_ccl, p_of_k_a_lin=linear_power_ccl, l_limber=-1, limber_max_error=0.001, limber_integration_method='spline')
+            output_data[k, m, n] = pyccl.cells.angular_cl(cosmo=cosmology_ccl, tracer1=output_tracer1, tracer2=output_tracer2, ell=ell_data, p_of_k_a=power_ccl, l_limber=-1, limber_max_error=0.01, limber_integration_method='spline')
     
     input_mean = numpy.mean(input_data, axis = 0)
     output_mean = numpy.mean(output_data, axis = 0)

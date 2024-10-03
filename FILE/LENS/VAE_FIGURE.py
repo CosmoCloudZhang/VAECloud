@@ -25,30 +25,28 @@ def plot_loss(epoch_size, history):
     
     plot[0].set_yscale('log')
     plot[0].set_xscale('linear')
-    
-    plot[0].legend()
     plot[0].set_xlim(1, epoch_size)
     
     plot[0].set_title(r'$\mathrm{Train}$')
     plot[0].set_xlabel(r'$\mathrm{Epochs}$')
     plot[0].set_ylabel(r'$\mathrm{Losses}$')
     
-    plot[1].plot(epoch, history['val_all_loss'], color = 'black', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_all_loss'], color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot[1].plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_mean_loss'], color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot[1].plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_scatter_loss'], color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
     
-    plot[1].plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_covariance_loss'], color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot[1].plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(epoch, history['val_divergence_loss'], color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
     
     plot[1].set_yscale('log')
     plot[1].set_xscale('linear')
     
-    plot[1].set_xticklabels([])
     plot[1].set_yticklabels([])
     plot[1].set_xlim(1, epoch_size)
+    plot[1].legend(loc='upper right')
     
     plot[1].set_xlabel(r'$\mathrm{Epochs}$')
     plot[1].set_title(r'$\mathrm{Validation}$')
