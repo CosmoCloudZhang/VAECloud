@@ -123,6 +123,7 @@ def main(path, name):
         extra_parameters = {'camb': {'kmax': 100, 'lmax': 10000, 'halofit_version': 'mead2020_feedback', 'HMCode_logT_AGN': 7.8}}
     )
     
+    pyccl.spline_params.N_K = grid_size
     power_ccl = cosmology_ccl.get_nonlin_power(name='delta_matter:delta_matter')
     
     # Redshift
