@@ -246,30 +246,9 @@ class Decoder(Layer):
             kernel_initializer=HeNormal()
         ))
         
-        self.decoder.add(BatchNormalization())
-        self.decoder.add(LeakyReLU())
-        self.decoder.add(Dropout(0.2))
-        
         # Flatten the data from (pca_size, 1) to (pca_size)
         self.decoder.add(Flatten()) 
         
-        # Use Dense layers to modify the data from (pca_size) to (pca_size)
-        self.mu = Dense(
-            units=pca_size,
-            bias_regularizer=L2(0.01),
-            kernel_regularizer=L2(0.01),
-            activity_regularizer=L2(0.01),
-            kernel_initializer=HeNormal()
-        )
-        
-        self.logvar = Dense(
-            units=pca_size,
-            bias_regularizer=L2(0.01),
-            kernel_regularizer=L2(0.01),
-            activity_regularizer=L2(0.01),
-            kernel_initializer=HeNormal()
-        )
-    
     def call(self, latent_data):
         '''
         Call function for the decoder.
@@ -281,11 +260,7 @@ class Decoder(Layer):
             output_data (numpy.ndarray): The output data.
         '''
         output_data = self.decoder(latent_data)
-        
-        output_mu = self.mu(output_data)
-        output_logvar = self.logvar(output_data)
-        
-        return output_mu, output_logvar
+        return output_data
 
 class VAE(Model):
     '''
@@ -331,8 +306,7 @@ class VAE(Model):
         
         latent_mu, latent_logvar = self.encoder(input_data)
         latent_data = self.sampler(latent_mu, latent_logvar)
-        data_mu, data_logvar = self.decoder(latent_data)
-        output_data = self.sampler(data_mu, data_logvar)
+        output_data = self.decoder(latent_data)
         
         return output_data
     
@@ -349,7 +323,7 @@ class VAE(Model):
         '''
         return [self.all_loss_tracker, self.data_loss_tracker, self.latent_loss_tracker]
     
-    def data_loss(self, data_mu, data_logvar):
+    def data_loss(self, input_data, output_data):
         '''
         Data loss function for the VAE.
         
@@ -360,7 +334,20 @@ class VAE(Model):
         Returns:
             float: The divergence loss.
         '''
-        return math.reduce_mean(- 0.5 * (1 + data_logvar - math.square(data_mu) - math.exp(data_logvar)))
+        
+        input_mean = math.reduce_mean(input_data, axis=0, keepdims=True)
+        output_mean = math.reduce_mean(output_data, axis=0, keepdims=True)
+        
+        input_covariance = stats.covariance(input_data, sample_axis=0)
+        output_covariance = stats.covariance(output_data, sample_axis=0)
+        
+        determinant_term = linalg.logdet(output_covariance) - linalg.logdet(input_covariance)
+        trace_term = linalg.trace(linalg.matmul(linalg.inv(output_covariance), input_covariance))
+        
+        delta_mean = output_mean - input_mean
+        quadratic_term = linalg.matmul(linalg.matmul(delta_mean, linalg.inv(output_covariance)), delta_mean, transpose_b=True)
+        
+        return 0.5 * (determinant_term + trace_term + quadratic_term - delta_mean.shape[1])
     
     def latent_loss(self, latent_mu, latent_logvar):
         '''
@@ -403,9 +390,9 @@ class VAE(Model):
             
             latent_mu, latent_logvar = self.encoder(input_data)
             latent_data = self.sampler(latent_mu, latent_logvar)
-            data_mu, data_logvar = self.decoder(latent_data)
+            output_data = self.decoder(latent_data)
             
-            data_loss = self.data_loss(data_mu, data_logvar)
+            data_loss = self.data_loss(input_data, output_data)
             latent_loss = self.latent_loss(latent_mu, latent_logvar)
             all_loss = data_loss + self.alpha * latent_loss
             
@@ -432,9 +419,9 @@ class VAE(Model):
         
         latent_mu, latent_logvar = self.encoder(input_data)
         latent_data = self.sampler(latent_mu, latent_logvar)
-        data_mu, data_logvar = self.decoder(latent_data)
+        output_data = self.decoder(latent_data)
         
-        data_loss = self.data_loss(data_mu, data_logvar)
+        data_loss = self.data_loss(input_data, output_data)
         latent_loss = self.latent_loss(latent_mu, latent_logvar)
         all_loss = data_loss + self.alpha * latent_loss
         
@@ -469,7 +456,7 @@ def main(path, name):
     input_data = numpy.maximum(input, 0.0)
     input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
     
-    pca_size = 64
+    pca_size = 128
     data_size = bin_size * grid_size
     input_data = input_data.reshape(mock_size, data_size)
     
@@ -487,10 +474,10 @@ def main(path, name):
     
     # Hyperparameters
     alpha = 1.0
-    latent_size = 8
-    epoch_size = 64
+    latent_size = 5
+    epoch_size = 32
     batch_size = 512
-    learning_rate = 1e-5
+    learning_rate = 1e-4
     
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()

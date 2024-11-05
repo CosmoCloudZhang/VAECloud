@@ -26,15 +26,15 @@ def plot_data(phi, bin_size, grid_size):
     
     # Plot
     figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
-    color_list = ['darkmagenta', 'darkblue', 'darkcyan', 'darkgreen', 'darkred']
+    color_list = ['darkmagenta', 'darkblue', 'darkgreen', 'darkorange', 'darkred']
     
     for m in range(bin_size):
         
         phi0 = numpy.mean(phi[:, m, :], axis = 0)
         
-        plot.plot(z_data, phi0, color = color_list[m], linewidth = 2.0, label = r'$m = {:.0f}$'.format(m + 1))
+        plot.plot(z_data, phi0, color = color_list[m], linewidth = 2.5, label = r'$m = {:.0f}$'.format(m + 1))
         
-        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.01, alpha = 0.01)
+        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.025, alpha = 0.0125)
     
     plot.legend()
     plot.set_xlim(z1, z2)
@@ -63,7 +63,6 @@ def plot_variance(model, latent_size):
     
     plot[0].set_ylim(0.00, 0.20)
     plot[0].set_xlim(1, latent_size)
-    plot[0].set_title(r'$\sum \frac{\sigma_i^2}{\sigma^2} = ' + '{:.0f}'.format(model.explained_variance_ratio_.sum() * 100) + '\%$')
     
     ratio = numpy.array([model.explained_variance_ratio_[:n + 1].sum() for n in range(latent_size)])
     
@@ -135,17 +134,17 @@ def main(path, name):
     delta = 0.01
     input = numpy.maximum(input, 0.0)
     input = input / numpy.sum(input, axis = 2, keepdims = True) / delta
-    input_data = numpy.reshape(input, mock_size, data_size)
+    input_data = numpy.reshape(input, (mock_size, data_size))
     
     # PCA
     model = decomposition.PCA(n_components = latent_size)
     latent_data = model.fit_transform(input_data)
     
     output_data = model.inverse_transform(latent_data)
-    output = output_data.reshape(mock_size, bin_size, grid_size)
+    output = numpy.reshape(output_data, (mock_size, bin_size, grid_size))
     
     # Plot
-    plot_size = mock_size // 40
+    plot_size = mock_size // 100
     select = numpy.random.choice(numpy.arange(mock_size), plot_size, replace = False)
     
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
