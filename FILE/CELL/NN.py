@@ -96,6 +96,7 @@ def main(path, name):
     bin_size = info['META']['BIN_SIZE']
     grid_size = info['META']['GRID_SIZE']
     mock_size = info['META']['MOCK_SIZE']
+    
     data_size = mock_size // 10
     plot_size = mock_size // 100
     
@@ -124,6 +125,7 @@ def main(path, name):
     )
     
     pyccl.spline_params.N_K = grid_size
+    power_ccl = cosmology_ccl.get_camb_pk()
     power_ccl = cosmology_ccl.get_nonlin_power(name='delta_matter:delta_matter')
     
     # Redshift

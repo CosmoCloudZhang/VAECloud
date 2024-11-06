@@ -37,8 +37,8 @@ def plot_data(phi, bin_size, grid_size):
         plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.025, alpha = 0.0125)
     
     plot.legend()
-    plot.set_xlim(z1, z2)
     plot.set_ylim(0.0, 8.0)
+    plot.set_xlim(z1, z2 * 2 / 3)
     
     plot.set_xlabel(r'$z$')
     plot.set_ylabel(r'$\phi^m (z)$')
