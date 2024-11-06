@@ -20,4 +20,4 @@ module load cray-hdf5-parallel
 # Run the application
 NAME="SOURCE"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/VAE.py" --path=$BASE_PATH --name=$NAME
+python -u "${BASE_PATH}/FILE/${NAME}/VAE_MODEL.py" --path=$BASE_PATH --name=$NAME

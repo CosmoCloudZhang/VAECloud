@@ -3,8 +3,10 @@ import time
 import json
 import h5py
 import numpy
+import pickle
 import random
 import argparse
+from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
 import tensorflow
@@ -14,7 +16,7 @@ from tensorflow_probability import stats
 from keras.regularizers import L2
 from keras.initializers import HeNormal
 from keras import losses, Model, Sequential
-from keras.layers import Layer, Flatten, Permute, Reshape, Dense, LeakyReLU, Conv1D, Conv1DTranspose, Dropout, BatchNormalization
+from keras.layers import Layer, Flatten, Reshape, Dense, LeakyReLU, Conv1D, Conv1DTranspose, Dropout, BatchNormalization
 
 class Encoder(Layer):
     '''
@@ -40,20 +42,27 @@ class Encoder(Layer):
         super(Encoder, self).__init__()
         self.encoder = Sequential()
         
-        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 256)
-        self.encoder.add(Dense(units=256, kernel_initializer=HeNormal()))
+        # Use Dense layers to modify the data from (pca_size) to (256)
+        self.encoder.add(Dense(
+            units=256,
+            bias_regularizer=L2(0.01),
+            kernel_regularizer=L2(0.01),
+            activity_regularizer=L2(0.01),
+            kernel_initializer=HeNormal()
+        ))
+        
         self.encoder.add(BatchNormalization())
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Reshape the data from (bin_size, 256) to (256, bin_size)
-        self.encoder.add(Permute((2, 1)))
+        # Reshape the data from (256) to (256, 1)
+        self.encoder.add(Reshape((-1, 1)))
         
-        # Use Conv1D layers to modify the data from (256, bin_size) to (256, 128)
+        # Use Conv1D layers to modify the data from (256, 1) to (256, 128)
         self.encoder.add(Conv1D(
             strides=1, 
             filters=128, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -65,11 +74,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (256, 128) to (128, 256)
+        # Use Conv1D layers to modify the data from (256, 128) to (128, 128)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=256, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -81,11 +90,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (128, 256) to (64, 512)
+        # Use Conv1D layers to modify the data from (128, 128) to (64, 128)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=512, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -97,11 +106,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (64, 512) to (32, 1024)
+        # Use Conv1D layers to modify the data from (64, 128) to (32, 1024)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=1024, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -133,19 +142,19 @@ class Encoder(Layer):
             kernel_initializer=HeNormal()
         )
     
-    def call(self, input_data):
+    def call(self, input):
         '''
         Call function for the encoder.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
         
         Returns:
             latent_mu (numpy.ndarray): The mean of the latent space.
             latent_logvar (numpy.ndarray): The log-variance of the latent space.
         '''
         
-        latent_data = self.encoder(input_data)
+        latent_data = self.encoder(input)
         
         latent_mu = self.mu(latent_data)
         latent_logvar = self.logvar(latent_data)
@@ -163,7 +172,7 @@ class Decoder(Layer):
     Returns:
         output_data (keras.layers.Conv1DTranspose): The output data.
     '''
-    def __init__(self, bin_size, grid_size):
+    def __init__(self, pca_size):
         '''
         Initialization function for the decoder.
         
@@ -178,7 +187,7 @@ class Decoder(Layer):
         
         # Use Dense layers to modify the data from (latent_size) to (32 * 1024)
         self.decoder.add(Dense(
-            units=32 * 1024, 
+            units=32 * 1024,
             bias_regularizer=L2(0.01),
             kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
@@ -196,7 +205,7 @@ class Decoder(Layer):
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=512,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -208,11 +217,11 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 256)
+        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 512)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=256,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -224,11 +233,11 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (128, 256) to (256, 128)
+        # Use Conv1DTranspose layers to modify the data from (128, 512) to (256, 256)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=128,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -240,31 +249,26 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (256, 128) to (256, bin_size)
+        # Use Conv1DTranspose layers to modify the data from (256, 256) to (256, 1)
         self.decoder.add(Conv1DTranspose(
             strides=1, 
-            kernel_size=2, 
-            padding='same', 
-            filters=bin_size,
+            filters=1,
+            kernel_size=3, 
+            padding='same',
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
             activity_regularizer=L2(0.01),
             kernel_initializer=HeNormal()
         ))
         
-        self.decoder.add(BatchNormalization())
-        self.decoder.add(LeakyReLU())
-        self.decoder.add(Dropout(0.2))
+        # Flatten the data from (pca_size, 1) to (pca_size)
+        self.decoder.add(Flatten()) 
         
-        # Reshape the data from (256, bin_size) to (bin_size, 256)
-        self.decoder.add(Permute((2, 1)))
-        
-        # Use Dense layers to modify the data from (bin_size, 256) to (bin_size, grid_size)
+        # Use Dense layers to modify the data from (256) to (pca_size)
         self.decoder.add(Dense(
-            units=grid_size, 
-            activation='softmax',
-            bias_regularizer=L2(0.01), 
-            kernel_regularizer=L2(0.01), 
+            units=pca_size,
+            bias_regularizer=L2(0.01),
+            kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
             kernel_initializer=HeNormal()
         ))
@@ -292,7 +296,7 @@ class VAE(Model):
     Returns:
         None
     '''
-    def __init__(self, alpha, delta, bin_size, grid_size, latent_size):
+    def __init__(self, theta, pca_size, latent_size):
         '''
         Initialization function for the VAE.
         
@@ -305,34 +309,30 @@ class VAE(Model):
         '''
         super(VAE, self).__init__()
         
-        self.alpha = alpha
-        self.delta = delta
         self.encoder = Encoder(latent_size)
-        self.decoder = Decoder(bin_size, grid_size)
+        self.decoder = Decoder(pca_size)
+        self.theta = theta
         
         self.all_loss_tracker = keras.metrics.Mean(name='all_loss')
         self.mean_loss_tracker = keras.metrics.Mean(name='mean_loss')
         self.scatter_loss_tracker = keras.metrics.Mean(name='scatter_loss')
         self.covariance_loss_tracker = keras.metrics.Mean(name='covariance_loss')
         self.divergence_loss_tracker = keras.metrics.Mean(name='divergence_loss')
-        
-    def call(self, input_data):
+    
+    def call(self, input):
         '''
         Call function for the VAE.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
         
         Returns:
             output_data (numpy.ndarray): The output data.
         '''
         
-        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-        latent_mu, latent_logvar = self.encoder(input_data / scale)
+        latent_mu, latent_logvar = self.encoder(input)
         latent_data = self.sampler(latent_mu, latent_logvar)
-        
-        output_data = self.decoder(latent_data) * scale
-        output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
+        output_data = self.decoder(latent_data)
         
         return output_data
     
@@ -349,46 +349,46 @@ class VAE(Model):
         '''
         return [self.all_loss_tracker, self.mean_loss_tracker, self.scatter_loss_tracker, self.covariance_loss_tracker, self.divergence_loss_tracker]
     
-    def mean_loss(self, input_data, output_data):
+    def mean_loss(self, input, output_data):
         '''
         Mean loss function for the VAE.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
             output_data (numpy.ndarray): The output data.
         
         Returns:
             float: The mean loss.
         '''
-        input_mean = math.reduce_mean(input_data, axis=0)
+        input_mean = math.reduce_mean(input, axis=0)
         output_mean = math.reduce_mean(output_data, axis=0)
         return math.reduce_mean(losses.mean_squared_error(input_mean, output_mean))
     
-    def scatter_loss(self, input_data, output_data):
+    def scatter_loss(self, input, output_data):
         '''
         Scatter loss function for the VAE.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
             output_data (numpy.ndarray): The output data.
         '''
-        input_scatter = math.reduce_std(input_data, axis=0)
+        input_scatter = math.reduce_std(input, axis=0)
         output_scatter = math.reduce_std(output_data, axis=0)
         return math.reduce_mean(losses.mean_squared_error(input_scatter, output_scatter))
     
-    def covariance_loss(self, input_data, output_data):
+    def covariance_loss(self, input, output_data):
         '''
         Covariance loss function for the VAE.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
             output_data (numpy.ndarray): The output data.
         
         Returns:
             float: The covariance loss.
         '''
-        input_covariance = stats.covariance(input_data, sample_axis=0, event_axis=(1, 2))
-        output_covariance = stats.covariance(output_data, sample_axis=0, event_axis=(1, 2))
+        input_covariance = stats.covariance(input, sample_axis=0)
+        output_covariance = stats.covariance(output_data, sample_axis=0)
         return math.reduce_mean(losses.mean_absolute_error(input_covariance, output_covariance))
     
     def divergence_loss(self, latent_mu, latent_logvar):
@@ -418,32 +418,29 @@ class VAE(Model):
         epsilon = tensorflow.random.normal(shape=tensorflow.shape(mu))
         return mu + epsilon * math.exp(0.5 * logvar)
     
-    def train_step(self, input_data):
+    def train_step(self, input):
         '''
         Train step function for the VAE.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input (numpy.ndarray): The input data.
         
         Returns:
             dict: The dictionary of losses.
         '''
         with tensorflow.GradientTape() as tape:
             
-            scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-            latent_mu, latent_logvar = self.encoder(input_data / scale)
+            latent_mu, latent_logvar = self.encoder(input)
             latent_data = self.sampler(latent_mu, latent_logvar)
+            output_data = self.decoder(latent_data)
             
-            output_data = self.decoder(latent_data) * scale
-            output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
-            
-            mean_loss = self.mean_loss(input_data, output_data)
-            scatter_loss = self.scatter_loss(input_data, output_data)
-            covariance_loss = self.covariance_loss(input_data, output_data)
+            mean_loss = self.mean_loss(input, output_data)
+            scatter_loss = self.scatter_loss(input, output_data)
+            covariance_loss = self.covariance_loss(input, output_data)
             divergence_loss = self.divergence_loss(latent_mu, latent_logvar)
             
-            beta, gamma, kappa = self.alpha
-            all_loss = mean_loss + beta * scatter_loss + gamma * covariance_loss + kappa * divergence_loss
+            alpha, beta, gamma, kappa = self.theta
+            all_loss = alpha * mean_loss + beta * scatter_loss + gamma * covariance_loss + kappa * divergence_loss
             
             gradients = tape.gradient(all_loss, self.trainable_weights)
             self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
@@ -466,22 +463,19 @@ class VAE(Model):
         Returns:
             dict: The dictionary of losses.
         '''
-        input_data, input_data = validation_data
+        input, input = validation_data
         
-        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-        latent_mu, latent_logvar = self.encoder(input_data / scale)
+        latent_mu, latent_logvar = self.encoder(input)
         latent_data = self.sampler(latent_mu, latent_logvar)
+        output_data = self.decoder(latent_data)
         
-        output_data = self.decoder(latent_data) * scale
-        output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
-        
-        mean_loss = self.mean_loss(input_data, output_data)
-        scatter_loss = self.scatter_loss(input_data, output_data)
-        covariance_loss = self.covariance_loss(input_data, output_data)
+        mean_loss = self.mean_loss(input, output_data)
+        scatter_loss = self.scatter_loss(input, output_data)
+        covariance_loss = self.covariance_loss(input, output_data)
         divergence_loss = self.divergence_loss(latent_mu, latent_logvar)
         
-        beta, gamma, kappa = self.alpha
-        all_loss = mean_loss + beta * scatter_loss + gamma * covariance_loss + kappa * divergence_loss
+        alpha, beta, gamma, kappa = self.theta
+        all_loss = alpha * mean_loss + beta * scatter_loss + gamma * covariance_loss + kappa * divergence_loss
         
         self.all_loss_tracker.update_state(all_loss)
         self.mean_loss_tracker.update_state(mean_loss)
@@ -513,12 +507,18 @@ def main(path, name):
     
     # Input
     delta = 0.01
-    input_data = numpy.maximum(input, 0.0)
-    input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
-    del input
+    input = numpy.maximum(input, 0.0)
+    input = input / numpy.sum(input, axis=2, keepdims=True) / delta
+    
+    pca_size = 125
+    data_size = bin_size * grid_size
+    input = numpy.reshape(input, (mock_size, data_size))
+    
+    pca = decomposition.PCA(n_components = pca_size)
+    pca_data = pca.fit_transform(input)
     
     # Split
-    train_data, evaluation_data = train_test_split(input_data, test_size=0.2)
+    train_data, evaluation_data = train_test_split(pca_data, test_size=0.2)
     validation_data, test_data = train_test_split(evaluation_data, test_size=0.5)
     
     # Device
@@ -528,10 +528,10 @@ def main(path, name):
     
     # Hyperparameters
     latent_size = 5
-    epoch_size = 512
+    epoch_size = 128
     batch_size = 1024
-    learning_rate = 5e-5
-    alpha = (5.0, 25.0, 50.0)
+    learning_rate = 1e-4
+    theta = (1.0, 10.0, 10.0, 100.0)
     
     # Seed
     seed = 1
@@ -542,16 +542,23 @@ def main(path, name):
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
-        model = VAE(alpha, delta, bin_size, grid_size, latent_size)
-        model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
-        history = model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
+        # Train
+        vae = VAE(theta, pca_size, latent_size)
+        vae.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
+        history = vae.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
         
-        test_output = model.predict(test_data)
-        latent_mu, latent_logvar = model.encoder(test_data)
-        latent_data = model.sampler(latent_mu, latent_logvar)
+        # Test
+        test_input = numpy.reshape(pca.inverse_transform(test_data), (-1, bin_size, grid_size))
+        test_output = numpy.reshape(pca.inverse_transform(vae.predict(test_data)), (-1, bin_size, grid_size))
+        
+        # Latent
+        latent_mu, latent_logvar = vae.encoder(test_data)
+        latent_data = vae.sampler(latent_mu, latent_logvar)
         
         # Save
-        model.save(os.path.join(data_path, '{}/MODEL'.format(name)))
+        vae.save(os.path.join(data_path, '{}/VAE.hdf5'.format(name)))
+        with open(os.path.join(data_path, '{}/PCA.pkl'.format(name)), 'wb') as file:
+            pickle.dump(pca, file)
         
         meta = {
             'BIN_SIZE': bin_size,
@@ -568,10 +575,9 @@ def main(path, name):
             json.dump(info, file, indent=4)
         
         with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
-            file.create_dataset('TEST_INPUT', data=test_data)
+            file.create_dataset('TEST_INPUT', data=test_input)
             file.create_dataset('TEST_OUTPUT', data=test_output)
             file.create_dataset('LATENT_DATA', data=latent_data)
-    
     # Duration
     end = time.time()
     duration = (end - start) / 60

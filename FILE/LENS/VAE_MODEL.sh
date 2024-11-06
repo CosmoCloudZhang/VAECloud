@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH -J VAE
 #SBATCH -A m1727
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -7,7 +8,6 @@
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu
 #SBATCH -o LOG/%x_%j.out
-#SBATCH -J VAE_PCA_FIGURE
 #SBATCH --cpus-per-task=128
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
@@ -18,6 +18,6 @@ module load cray-mpich/8.1.28
 module load cray-hdf5-parallel
 
 # Run the application
-NAME="SOURCE"
+NAME="LENS"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-python -u "${BASE_PATH}/FILE/${NAME}/VAE_PCA_FIGURE.py" --path=$BASE_PATH --name=$NAME
+python -u "${BASE_PATH}/FILE/${NAME}/VAE_MODEL.py" --path=$BASE_PATH --name=$NAME
