@@ -501,19 +501,25 @@ def main(path, name):
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
     
+    # Seed
+    seed = 0
+    random.seed(seed)
+    numpy.random.seed(seed)
+    tensorflow.random.set_seed(seed)
+    
+    # Hyperparameters
+    pca_size = 128
+    latent_size = 5
+    epoch_size = 1024
+    batch_size = 4096
+    learning_rate = 2e-5
+    theta = (1.0, 10.0, 1.0, 100.0)
+    
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
     with h5py.File(data_name, 'r') as file:
         input = file['sample'][:].astype(numpy.float64)
     mock_size, bin_size, grid_size = input.shape
-    
-    # Hyperparameters
-    pca_size = 256
-    latent_size = 5
-    epoch_size = 128
-    batch_size = 1024
-    learning_rate = 2e-4
-    theta = (1.0, 10.0, 10.0, 100.0)
     
     # Input
     delta = 0.01
@@ -534,12 +540,6 @@ def main(path, name):
     devices = tensorflow.config.experimental.list_physical_devices('GPU')
     for device in devices:
         tensorflow.config.experimental.set_memory_growth(device, True)
-    
-    # Seed
-    seed = 0
-    random.seed(seed)
-    numpy.random.seed(seed)
-    tensorflow.random.set_seed(seed)
     
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()
