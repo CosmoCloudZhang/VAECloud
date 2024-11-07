@@ -510,7 +510,7 @@ def main(path, name):
     # Hyperparameters
     pca_size = 128
     latent_size = 5
-    epoch_size = 1024
+    epoch_size = 2048
     batch_size = 8192
     learning_rate = 5e-5
     theta = (1.0, 10.0, 10.0, 100.0)
