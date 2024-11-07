@@ -10,8 +10,8 @@ from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
 import tensorflow
-from tensorflow import math, keras
 from tensorflow_probability import stats
+from tensorflow import math, keras, linalg
 
 from keras.regularizers import L2
 from keras.initializers import HeNormal
@@ -511,9 +511,9 @@ def main(path, name):
     pca_size = 128
     latent_size = 5
     epoch_size = 1024
-    batch_size = 4096
+    batch_size = 8192
     learning_rate = 2e-5
-    theta = (1.0, 10.0, 1.0, 100.0)
+    theta = (1.0, 10.0, 10.0, 100.0)
     
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
