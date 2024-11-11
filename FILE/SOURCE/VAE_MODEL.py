@@ -3,19 +3,22 @@ import time
 import json
 import h5py
 import numpy
+import pickle
 import random
 import argparse
+from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
 import tensorflow
-from tensorflow import math, keras
 from tensorflow_probability import stats
+from tensorflow import math, keras, linalg
 
 from keras.regularizers import L2
 from keras.initializers import HeNormal
 from keras import losses, Model, Sequential
-from keras.layers import Layer, Flatten, Permute, Reshape, Dense, LeakyReLU, Conv1D, Conv1DTranspose, Dropout, BatchNormalization
+from keras.layers import Layer, Flatten, Reshape, Dense, LeakyReLU, Conv1D, Conv1DTranspose, Dropout, BatchNormalization
 
+@keras.saving.register_keras_serializable()
 class Encoder(Layer):
     '''
     Encoder class for the VAE model.
@@ -40,20 +43,27 @@ class Encoder(Layer):
         super(Encoder, self).__init__()
         self.encoder = Sequential()
         
-        # Use a Dense layer to reshape from (bin_size, grid_size) to (bin_size, 256)
-        self.encoder.add(Dense(units=256, kernel_initializer=HeNormal()))
+        # Use Dense layers to modify the data from (pca_size) to (256)
+        self.encoder.add(Dense(
+            units=256,
+            bias_regularizer=L2(0.01),
+            kernel_regularizer=L2(0.01),
+            activity_regularizer=L2(0.01),
+            kernel_initializer=HeNormal()
+        ))
+        
         self.encoder.add(BatchNormalization())
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Reshape the data from (bin_size, 256) to (256, bin_size)
-        self.encoder.add(Permute((2, 1)))
+        # Reshape the data from (256) to (256, 1)
+        self.encoder.add(Reshape((-1, 1)))
         
-        # Use Conv1D layers to modify the data from (256, bin_size) to (256, 128)
+        # Use Conv1D layers to modify the data from (256, 1) to (256, 128)
         self.encoder.add(Conv1D(
             strides=1, 
             filters=128, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -65,11 +75,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (256, 128) to (128, 256)
+        # Use Conv1D layers to modify the data from (256, 128) to (128, 128)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=256, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -81,11 +91,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (128, 256) to (64, 512)
+        # Use Conv1D layers to modify the data from (128, 128) to (64, 128)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=512, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -97,11 +107,11 @@ class Encoder(Layer):
         self.encoder.add(LeakyReLU())
         self.encoder.add(Dropout(0.2))
         
-        # Use Conv1D layers to modify the data from (64, 512) to (32, 1024)
+        # Use Conv1D layers to modify the data from (64, 128) to (32, 1024)
         self.encoder.add(Conv1D(
             strides=2, 
             filters=1024, 
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -152,7 +162,7 @@ class Encoder(Layer):
         
         return latent_mu, latent_logvar
 
-
+@keras.saving.register_keras_serializable()
 class Decoder(Layer):
     '''
     Decoder class for the VAE model.
@@ -163,7 +173,7 @@ class Decoder(Layer):
     Returns:
         output_data (keras.layers.Conv1DTranspose): The output data.
     '''
-    def __init__(self, bin_size, grid_size):
+    def __init__(self, pca_size):
         '''
         Initialization function for the decoder.
         
@@ -178,7 +188,7 @@ class Decoder(Layer):
         
         # Use Dense layers to modify the data from (latent_size) to (32 * 1024)
         self.decoder.add(Dense(
-            units=32 * 1024, 
+            units=32 * 1024,
             bias_regularizer=L2(0.01),
             kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
@@ -196,7 +206,7 @@ class Decoder(Layer):
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=512,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -208,11 +218,11 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 256)
+        # Use Conv1DTranspose layers to modify the data from (64, 512) to (128, 512)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=256,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -224,11 +234,11 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (128, 256) to (256, 128)
+        # Use Conv1DTranspose layers to modify the data from (128, 512) to (256, 256)
         self.decoder.add(Conv1DTranspose(
             strides=2, 
             filters=128,
-            kernel_size=2, 
+            kernel_size=3, 
             padding='same', 
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
@@ -240,31 +250,26 @@ class Decoder(Layer):
         self.decoder.add(LeakyReLU())
         self.decoder.add(Dropout(0.2))
         
-        # Use Conv1DTranspose layers to modify the data from (256, 128) to (256, bin_size)
+        # Use Conv1DTranspose layers to modify the data from (256, 256) to (256, 1)
         self.decoder.add(Conv1DTranspose(
             strides=1, 
-            kernel_size=2, 
-            padding='same', 
-            filters=bin_size,
+            filters=1,
+            kernel_size=3, 
+            padding='same',
             bias_regularizer=L2(0.01), 
             kernel_regularizer=L2(0.01), 
             activity_regularizer=L2(0.01),
             kernel_initializer=HeNormal()
         ))
         
-        self.decoder.add(BatchNormalization())
-        self.decoder.add(LeakyReLU())
-        self.decoder.add(Dropout(0.2))
+        # Flatten the data from (pca_size, 1) to (pca_size)
+        self.decoder.add(Flatten()) 
         
-        # Reshape the data from (256, bin_size) to (bin_size, 256)
-        self.decoder.add(Permute((2, 1)))
-        
-        # Use Dense layers to modify the data from (bin_size, 256) to (bin_size, grid_size)
+        # Use Dense layers to modify the data from (256) to (pca_size)
         self.decoder.add(Dense(
-            units=grid_size, 
-            activation='softmax',
-            bias_regularizer=L2(0.01), 
-            kernel_regularizer=L2(0.01), 
+            units=pca_size,
+            bias_regularizer=L2(0.01),
+            kernel_regularizer=L2(0.01),
             activity_regularizer=L2(0.01),
             kernel_initializer=HeNormal()
         ))
@@ -282,6 +287,7 @@ class Decoder(Layer):
         output_data = self.decoder(latent_data)
         return output_data
 
+@keras.saving.register_keras_serializable()
 class VAE(Model):
     '''
     VAE class for the VAE model.
@@ -292,7 +298,7 @@ class VAE(Model):
     Returns:
         None
     '''
-    def __init__(self, theta, delta, bin_size, grid_size, latent_size):
+    def __init__(self, theta, pca_size, latent_size):
         '''
         Initialization function for the VAE.
         
@@ -305,17 +311,16 @@ class VAE(Model):
         '''
         super(VAE, self).__init__()
         
-        self.theta = theta
-        self.delta = delta
         self.encoder = Encoder(latent_size)
-        self.decoder = Decoder(bin_size, grid_size)
+        self.decoder = Decoder(pca_size)
+        self.theta = theta
         
         self.all_loss_tracker = keras.metrics.Mean(name='all_loss')
         self.mean_loss_tracker = keras.metrics.Mean(name='mean_loss')
         self.scatter_loss_tracker = keras.metrics.Mean(name='scatter_loss')
         self.covariance_loss_tracker = keras.metrics.Mean(name='covariance_loss')
         self.divergence_loss_tracker = keras.metrics.Mean(name='divergence_loss')
-        
+    
     def call(self, input_data):
         '''
         Call function for the VAE.
@@ -327,12 +332,9 @@ class VAE(Model):
             output_data (numpy.ndarray): The output data.
         '''
         
-        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-        latent_mu, latent_logvar = self.encoder(input_data / scale)
+        latent_mu, latent_logvar = self.encoder(input_data)
         latent_data = self.sampler(latent_mu, latent_logvar)
-        
-        output_data = self.decoder(latent_data) * scale
-        output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
+        output_data = self.decoder(latent_data)
         
         return output_data
     
@@ -387,8 +389,8 @@ class VAE(Model):
         Returns:
             float: The covariance loss.
         '''
-        input_covariance = stats.covariance(input_data, sample_axis=0, event_axis=(1, 2))
-        output_covariance = stats.covariance(output_data, sample_axis=0, event_axis=(1, 2))
+        input_covariance = stats.covariance(input_data, sample_axis=0)
+        output_covariance = stats.covariance(output_data, sample_axis=0)
         return math.reduce_mean(losses.mean_absolute_error(input_covariance, output_covariance))
     
     def divergence_loss(self, latent_mu, latent_logvar):
@@ -430,12 +432,9 @@ class VAE(Model):
         '''
         with tensorflow.GradientTape() as tape:
             
-            scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-            latent_mu, latent_logvar = self.encoder(input_data / scale)
+            latent_mu, latent_logvar = self.encoder(input_data)
             latent_data = self.sampler(latent_mu, latent_logvar)
-            
-            output_data = self.decoder(latent_data) * scale
-            output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
+            output_data = self.decoder(latent_data)
             
             mean_loss = self.mean_loss(input_data, output_data)
             scatter_loss = self.scatter_loss(input_data, output_data)
@@ -468,12 +467,9 @@ class VAE(Model):
         '''
         input_data, input_data = validation_data
         
-        scale = math.reduce_max(input_data, axis=(0, 2), keepdims=True)
-        latent_mu, latent_logvar = self.encoder(input_data / scale)
+        latent_mu, latent_logvar = self.encoder(input_data)
         latent_data = self.sampler(latent_mu, latent_logvar)
-        
-        output_data = self.decoder(latent_data) * scale
-        output_data = math.divide_no_nan(output_data, math.reduce_sum(output_data, axis=2, keepdims=True)) / self.delta
+        output_data = self.decoder(latent_data)
         
         mean_loss = self.mean_loss(input_data, output_data)
         scatter_loss = self.scatter_loss(input_data, output_data)
@@ -505,19 +501,39 @@ def main(path, name):
     start = time.time()
     data_path = os.path.join(path, 'DATA/')
     
+    # Seed
+    seed = 0
+    random.seed(seed)
+    numpy.random.seed(seed)
+    tensorflow.random.set_seed(seed)
+    
+    # Hyperparameters
+    pca_size = 128
+    latent_size = 5
+    epoch_size = 1024
+    batch_size = 4096
+    learning_rate = 2e-5
+    theta = (1.0, 10.0, 10.0, 100.0)
+    
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
     with h5py.File(data_name, 'r') as file:
-        input = file['sample'][:].astype(numpy.float64)
-    mock_size, bin_size, grid_size = input.shape
+        input_sample = file['sample'][:].astype(numpy.float64)
+    mock_size, bin_size, grid_size = input_sample.shape
     
     # Input
     delta = 0.01
-    input_data = numpy.maximum(input, 0.0)
+    input_data = numpy.maximum(input_sample, 0.0)
     input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
     
+    pca_model = decomposition.PCA(n_components = pca_size)
+    pca_input = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * grid_size)))
+    
+    pca_scale = numpy.max(numpy.std(pca_input, axis=0))
+    pca_input = pca_input / pca_scale
+    print(pca_scale)
     # Split
-    train_data, evaluation_data = train_test_split(input_data, test_size=0.2)
+    train_data, evaluation_data = train_test_split(pca_input, test_size=0.2)
     validation_data, test_data = train_test_split(evaluation_data, test_size=0.5)
     
     # Device
@@ -525,36 +541,32 @@ def main(path, name):
     for device in devices:
         tensorflow.config.experimental.set_memory_growth(device, True)
     
-    # Hyperparameters
-    latent_size = 5
-    epoch_size = 512
-    batch_size = 1024
-    learning_rate = 1e-5
-    theta = (1.0, 5.0, 25.0, 50.0)
-    
-    # Seed
-    seed = 1
-    random.seed(seed)
-    numpy.random.seed(seed)
-    tensorflow.random.set_seed(seed)
-    
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
-        vae_model = VAE(theta, delta, bin_size, grid_size, latent_size)
+        # Train
+        vae_model = VAE(theta, pca_size, latent_size)
         vae_model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
         history = vae_model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
         
-        test_output = vae_model.predict(test_data)
+        # Test
+        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, grid_size))
+        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, grid_size))
+        
+        # Latent
         latent_mu, latent_logvar = vae_model.encoder(test_data)
         latent_data = vae_model.sampler(latent_mu, latent_logvar)
         
         # Save
         vae_model.save(os.path.join(data_path, '{}/VAE'.format(name)))
+        with open(os.path.join(data_path, '{}/PCA.pkl'.format(name)), 'wb') as file:
+            pickle.dump(pca_model, file)
         
         meta = {
+            'PCA_SIZE': pca_size,
             'BIN_SIZE': bin_size,
-            'GRID_SIZE': grid_size,
+            'PCA_SCALE': pca_scale,
+            'GRID_SIZE': grid_size, 
             'MOCK_SIZE': mock_size,
             'EPOCH_SIZE': epoch_size,
             'BATCH_SIZE': batch_size,
@@ -567,10 +579,9 @@ def main(path, name):
             json.dump(info, file, indent=4)
         
         with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
-            file.create_dataset('TEST_INPUT', data=test_data)
+            file.create_dataset('TEST_INPUT', data=test_input)
             file.create_dataset('TEST_OUTPUT', data=test_output)
             file.create_dataset('LATENT_DATA', data=latent_data)
-    
     # Duration
     end = time.time()
     duration = (end - start) / 60

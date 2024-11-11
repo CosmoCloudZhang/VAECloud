@@ -2,14 +2,14 @@ import os
 import time
 import h5py
 import numpy
+import scipy
 import argparse
 from sklearn import decomposition
 from matplotlib import pyplot, colors
 
-
-def plot_data(phi, bin_size, grid_size):
+def plot_pca(phi, bin_size, grid_size):
     '''
-    Plot the data.
+    Plot the PCA.
     
     Arguments:
         phi (numpy.ndarray): The data.
@@ -30,18 +30,13 @@ def plot_data(phi, bin_size, grid_size):
     
     for m in range(bin_size):
         
-        phi0 = numpy.mean(phi[:, m, :], axis = 0)
-        
-        plot.plot(z_data, phi0, color = color_list[m], linewidth = 2.5, label = r'$m = {:.0f}$'.format(m + 1))
-        
-        plot.plot(z_data, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.025, alpha = 0.0125)
+        plot.plot(z_data, phi[m, :], color = color_list[m], linewidth = 2.5)
     
-    plot.legend()
     plot.set_xlim(z1, z2)
-    plot.set_ylim(0.0, 8.0)
+    plot.set_ylim(0.0, 0.25)
     
-    plot.set_xlabel(r'$z$')
-    plot.set_ylabel(r'$\phi^m (z)$')
+    plot.set_xticklabels([])
+    plot.set_yticklabels([])
     
     return figure
 
@@ -74,33 +69,76 @@ def plot_variance(model, latent_size):
     return figure
 
 
-def plot_covariance(phi, bin_size, grid_size):
-    '''
-    Plot the covariance.
+def plot_shift(phi):
     
-    Arguments:
-        phi (numpy.ndarray): The data.
-        bin_size (int): The bin size.
-        grid_size (int): The grid size.
+    # Shift
+    z1 = 0.0
+    z2 = 3.0
+    z_size = 300
+    z_delta = (z2 - z1) / z_size
+    z_grid = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, z_size)
     
-    Returns:
-        figure (matplotlib.figure.Figure): The figure.
-    '''
+    z_mean = numpy.sum(phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis=2) * z_delta
+    correlation = numpy.corrcoef(z_mean, rowvar=False)
+    scatter = numpy.std(z_mean, axis=0)
+    mean = numpy.mean(z_mean, axis=0)
+    print(mean)
+    print(scatter)
+    
+    # Plot
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 12))
+    
+    norm = colors.Normalize(vmin = -1.0, vmax = +1.0)
+    image = plot.imshow(correlation, norm = norm, cmap = 'coolwarm', origin = 'upper')
+    
+    for (i, j), value in numpy.ndenumerate(correlation):
+        plot.text(j, i, r'${:.3f}$'.format(value), va='center', ha='center', color='black')
+    plot.axis('off')
+    
+    cax = figure.add_axes([0.15, 0.05, 0.72, 0.05])
+    figure.colorbar(cax = cax, mappable = image, orientation = 'horizontal', label = r'$\mathrm{Cov} \: [\Delta z^{m_1}, \Delta z^{m_2}]$')
+    
+    figure.subplots_adjust(wspace = 0.02, hspace = 0.02)
+    return figure
+
+
+def plot_delta(phi, mock_size, bin_size, grid_size):
+    
+    # Shift
+    z1 = 0.0
+    z2 = 3.0
+    z_delta = (z2 - z1) / grid_size
+    z_grid = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
+    
+    z_mean = numpy.sum(phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis=2) * z_delta
+    covariance = numpy.cov(z_mean, rowvar=False)
+    
+    # Phi
+    shift = numpy.random.multivariate_normal(mean=numpy.zeros(bin_size), cov=covariance, size=mock_size)
+    z_shift = z_grid[numpy.newaxis, numpy.newaxis, :] + shift[:, :, numpy.newaxis]
+    
+    phi_mean = numpy.mean(phi, axis=0)
+    phi_shift = numpy.zeros((mock_size, bin_size, grid_size))
+    for m in range(bin_size):
+        phi_shift[:, m, :] = scipy.interpolate.CubicSpline(z_grid, phi_mean[m, :], extrapolate=True)(z_shift[:, m, :])
+    # Delta
+    delta = numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * grid_size)), rowvar=False)
+    delta = delta - numpy.cov(numpy.reshape(phi, (-1, bin_size * grid_size)), rowvar=False)
+    
+    # Plot
+    norm = colors.Normalize(vmin = -0.05, vmax = +0.05)
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
-    
-    covariance = numpy.cov(phi, rowvar = False)
-    norm = colors.Normalize(vmin = -0.075, vmax = 0.075)
     
     for m in range(bin_size):
         for n in range(bin_size):
             
-            map = covariance[n * grid_size: n * grid_size + grid_size // 2, m * grid_size: m * grid_size + grid_size // 2]
+            map = delta[n * grid_size: n * grid_size + grid_size // 2, m * grid_size: m * grid_size + grid_size // 2]
             image = plot[n, m].imshow(map, norm = norm, cmap = 'coolwarm', origin = 'upper')
             plot[n, m].axis('off')
     
     cax = figure.add_axes([0.15, 0.05, 0.72, 0.05])
     figure.subplots_adjust(wspace = 0.02, hspace = 0.02)
-    figure.colorbar(cax = cax, mappable = image, orientation = 'horizontal', label = r'$\mathrm{Cov} \: [\phi^{m_1} (z_1), \phi^{m_2} (z_2)]$')
+    figure.colorbar(cax = cax, mappable = image, orientation = 'horizontal', label = r'$\Delta \mathrm{Cov} \: [\phi^{m_1} (z_1), \phi^{m_2} (z_2)]$')
     
     return figure
 
@@ -124,53 +162,46 @@ def main(path, name):
     # Data
     data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
     with h5py.File(data_name, 'r') as file:
-        input = file['sample'][:].astype(numpy.float32)
-    
-    mock_size, bin_size, grid_size = input.shape
-    data_size = bin_size * grid_size
-    latent_size = 128
+        input_sample = file['sample'][:].astype(numpy.float64)
+    mock_size, bin_size, grid_size = input_sample.shape
     
     # Input
     delta = 0.01
-    input = numpy.maximum(input, 0.0)
-    input = input / numpy.sum(input, axis = 2, keepdims = True) / delta
-    input_data = numpy.reshape(input, (mock_size, data_size))
+    input_data = numpy.maximum(input_sample, 0.0)
+    input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
     
     # PCA
-    model = decomposition.PCA(n_components = latent_size)
-    latent_data = model.fit_transform(input_data)
+    latent_size = 128
+    pca_model = decomposition.PCA(n_components = latent_size)
     
-    output_data = model.inverse_transform(latent_data)
-    output = numpy.reshape(output_data, (mock_size, bin_size, grid_size))
+    latent_data = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * grid_size)))
+    output_data = numpy.reshape(pca_model.inverse_transform(latent_data), (mock_size, bin_size, grid_size))
+    
+    pca_data = numpy.reshape(pca_model.components_, (latent_size, bin_size, grid_size))
     
     # Plot
-    plot_size = mock_size // 100
-    select = numpy.random.choice(numpy.arange(mock_size), plot_size, replace = False)
-    
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
     pyplot.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 20
     
-    figure = plot_data(input[select, :, :], bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/INPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    pyplot.close(figure)
+    pca_size = 5
+    for n in range(pca_size):
+        figure = plot_pca(pca_data[n, :, :], bin_size, grid_size)
+        figure.savefig(os.path.join(plot_path, '{}/PCA/PCA_{:.0f}.pdf'.format(name, n + 1)), bbox_inches = 'tight')
+        pyplot.close(figure)
     
-    figure = plot_data(output[select, :, :], bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/OUTPUT_DATA.pdf'.format(name)), bbox_inches = 'tight')
-    pyplot.close(figure)
-    
-    figure = plot_variance(model, latent_size)
+    figure = plot_variance(pca_model, latent_size)
     figure.savefig(os.path.join(plot_path, '{}/PCA/VARIANCE.pdf'.format(name)), bbox_inches = 'tight')
     pyplot.close(figure)
     
-    figure = plot_covariance(input_data, bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/INPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
+    figure = plot_shift(input_data)
+    figure.savefig(os.path.join(plot_path, '{}/PCA/SHIFT.pdf'.format(name)), bbox_inches = 'tight')
     pyplot.close(figure)
     
-    figure = plot_covariance(output_data, bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/OUTPUT_COVARIANCE.pdf'.format(name)), bbox_inches = 'tight')
+    figure = plot_delta(output_data, mock_size, bin_size, grid_size)
+    figure.savefig(os.path.join(plot_path, '{}/PCA/DELTA.pdf'.format(name)), bbox_inches = 'tight')
     pyplot.close(figure)
     
     # Return
