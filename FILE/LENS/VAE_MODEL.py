@@ -487,19 +487,23 @@ class VAE(Model):
         
         return {'all_loss': self.all_loss_tracker.result(), 'mean_loss': self.mean_loss_tracker.result(), 'scatter_loss': self.scatter_loss_tracker.result(), 'covariance_loss': self.covariance_loss_tracker.result(), 'divergence_loss': self.divergence_loss_tracker.result()}
     
-def main(path, name):
+def main(name, folder):
     '''
     Main function for the PCA analysis.
     
     Arguments:
-        path (str): The path to the base folder.
-        name (str): The name of the sample datasets.
+        name (str): The name of the datasets.
+        folder (str): The base folder of the datasets.
     
     Returns:
         duration (float): The duration of the PCA analysis
     '''
+    # Start
     start = time.time()
-    data_path = os.path.join(path, 'DATA/')
+    
+    # Path
+    path = os.path.join(folder, '{}/'.format(name))
+    os.makedirs(os.path.join(path, 'VAE/'), exist_ok=True)
     
     # Seed
     seed = 0
@@ -515,23 +519,19 @@ def main(path, name):
     learning_rate = 2e-5
     theta = (1.0, 10.0, 10.0, 100.0)
     
-    # Data
-    data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
-    with h5py.File(data_name, 'r') as file:
-        input_sample = file['sample'][:].astype(numpy.float64)
-    mock_size, bin_size, grid_size = input_sample.shape
-    
     # Input
-    delta = 0.01
-    input_data = numpy.maximum(input_sample, 0.0)
-    input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
+    with h5py.File(os.path.join(path, 'ENSEMBLE.hdf5'), 'r') as file:
+        input_data = file['select'][:].astype(numpy.float64)
+    mock_size, bin_size, data_size = input_data.shape
     
+    # PCA
     pca_model = decomposition.PCA(n_components = pca_size)
-    pca_input = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * grid_size)))
+    pca_input = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * data_size)))
     
     pca_scale = numpy.max(numpy.std(pca_input, axis=0))
     pca_input = pca_input / pca_scale
     print(pca_scale)
+    
     # Split
     train_data, evaluation_data = train_test_split(pca_input, test_size=0.2)
     validation_data, test_data = train_test_split(evaluation_data, test_size=0.5)
@@ -550,23 +550,23 @@ def main(path, name):
         history = vae_model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
         
         # Test
-        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, grid_size))
-        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, grid_size))
+        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, data_size))
+        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, data_size))
         
         # Latent
         latent_mu, latent_logvar = vae_model.encoder(test_data)
         latent_data = vae_model.sampler(latent_mu, latent_logvar)
         
         # Save
-        vae_model.save(os.path.join(data_path, '{}/VAE'.format(name)))
-        with open(os.path.join(data_path, '{}/PCA.pkl'.format(name)), 'wb') as file:
+        vae_model.save(os.path.join(path, 'VAE/MODEL'))
+        with open(os.path.join(path, 'PCA/MODEL.pkl'), 'wb') as file:
             pickle.dump(pca_model, file)
         
         meta = {
             'PCA_SIZE': pca_size,
             'BIN_SIZE': bin_size,
             'PCA_SCALE': pca_scale,
-            'GRID_SIZE': grid_size, 
+            'DATA_SIZE': data_size, 
             'MOCK_SIZE': mock_size,
             'EPOCH_SIZE': epoch_size,
             'BATCH_SIZE': batch_size,
@@ -575,10 +575,10 @@ def main(path, name):
         }
         
         info = {'META': meta, 'HISTORY': history.history}
-        with open(os.path.join(data_path, '{}/INFO.json'.format(name)), 'w') as file:
+        with open(os.path.join(path, 'VAE/INFO.json'), 'w') as file:
             json.dump(info, file, indent=4)
         
-        with h5py.File(os.path.join(data_path, '{}/DATA.hdf5'.format(name)), 'w') as file:
+        with h5py.File(os.path.join(path, 'VAE/DATA.hdf5'), 'w') as file:
             file.create_dataset('TEST_INPUT', data=test_input)
             file.create_dataset('TEST_OUTPUT', data=test_output)
             file.create_dataset('LATENT_DATA', data=latent_data)
@@ -593,11 +593,12 @@ def main(path, name):
 if __name__ == '__main__':
     # Input
     PARSE = argparse.ArgumentParser(description='VAE')
-    PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the datasets.')
+    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets.')
     
-    PATH = PARSE.parse_args().path
+    # Parse
     NAME = PARSE.parse_args().name
+    FOLDER = PARSE.parse_args().folder
     
-    # Result
-    RESULT = main(PATH, NAME)
+    # Output
+    OUTPUT = main(NAME, FOLDER)
