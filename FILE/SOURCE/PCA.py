@@ -4,10 +4,12 @@ import h5py
 import numpy
 import scipy
 import argparse
+import scipy.integrate
+import scipy.interpolate
 from sklearn import decomposition
 from matplotlib import pyplot, colors
 
-def plot_pca(phi, bin_size, grid_size):
+def plot_pca(phi, bin_size, data_size):
     '''
     Plot the PCA.
     
@@ -21,8 +23,7 @@ def plot_pca(phi, bin_size, grid_size):
     # Redshift
     z1 = 0.0
     z2 = 3.0
-    z_delta = (z2 - z1) / grid_size
-    z_data = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
+    z_grid = numpy.linspace(z1, z2, data_size)
     
     # Plot
     figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
@@ -30,10 +31,10 @@ def plot_pca(phi, bin_size, grid_size):
     
     for m in range(bin_size):
         
-        plot.plot(z_data, phi[m, :], color = color_list[m], linewidth = 2.5)
+        plot.plot(z_grid, phi[m, :], color = color_list[m], linewidth = 2.5)
     
     plot.set_xlim(z1, z2)
-    plot.set_ylim(0.0, 0.25)
+    plot.set_ylim(0.0, 0.30)
     
     plot.set_xticklabels([])
     plot.set_yticklabels([])
@@ -69,19 +70,19 @@ def plot_variance(model, latent_size):
     return figure
 
 
-def plot_shift(phi):
+def plot_shift(phi, data_size):
     
     # Shift
     z1 = 0.0
     z2 = 3.0
-    z_size = 300
-    z_delta = (z2 - z1) / z_size
-    z_grid = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, z_size)
+    z_grid = numpy.linspace(z1, z2, data_size)
     
-    z_mean = numpy.sum(phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis=2) * z_delta
+    z_mean = scipy.integrate.trapezoid(x = z_grid, y = phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis = 2)
     correlation = numpy.corrcoef(z_mean, rowvar=False)
-    scatter = numpy.std(z_mean, axis=0)
+    
     mean = numpy.mean(z_mean, axis=0)
+    scatter = numpy.std(z_mean, axis=0)
+    
     print(mean)
     print(scatter)
     
@@ -102,15 +103,17 @@ def plot_shift(phi):
     return figure
 
 
-def plot_delta(phi, mock_size, bin_size, grid_size):
+def plot_delta(phi, mock_size, bin_size, data_size):
     
     # Shift
     z1 = 0.0
     z2 = 3.0
-    z_delta = (z2 - z1) / grid_size
-    z_grid = numpy.linspace(z1 + z_delta / 2, z2 - z_delta / 2, grid_size)
+    # Shift
+    z1 = 0.0
+    z2 = 3.0
+    z_grid = numpy.linspace(z1, z2, data_size)
     
-    z_mean = numpy.sum(phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis=2) * z_delta
+    z_mean = scipy.integrate.trapezoid(x = z_grid, y = phi * z_grid[numpy.newaxis, numpy.newaxis, :], axis = 2)
     covariance = numpy.cov(z_mean, rowvar=False)
     
     # Phi
@@ -118,22 +121,22 @@ def plot_delta(phi, mock_size, bin_size, grid_size):
     z_shift = z_grid[numpy.newaxis, numpy.newaxis, :] + shift[:, :, numpy.newaxis]
     
     phi_mean = numpy.mean(phi, axis=0)
-    phi_shift = numpy.zeros((mock_size, bin_size, grid_size))
+    phi_shift = numpy.zeros((mock_size, bin_size, data_size))
     for m in range(bin_size):
         phi_shift[:, m, :] = scipy.interpolate.CubicSpline(z_grid, phi_mean[m, :], extrapolate=True)(z_shift[:, m, :])
     
     # Delta
-    delta = numpy.cov(numpy.reshape(phi, (-1, bin_size * grid_size)), rowvar=False)
-    delta = delta - numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * grid_size)), rowvar=False)
+    delta = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar=False)
+    delta = delta - numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * data_size)), rowvar=False)
     
     # Plot
-    norm = colors.Normalize(vmin = -0.05, vmax = +0.05)
+    norm = colors.Normalize(vmin = -0.1, vmax = +0.1)
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     for m in range(bin_size):
         for n in range(bin_size):
             
-            map = delta[n * grid_size: n * grid_size + grid_size // 2, m * grid_size: m * grid_size + grid_size // 2]
+            map = delta[n * data_size: n * data_size + data_size // 2, m * data_size: m * data_size + data_size // 2]
             image = plot[n, m].imshow(map, norm = norm, cmap = 'coolwarm', origin = 'upper')
             plot[n, m].axis('off')
     
@@ -144,7 +147,7 @@ def plot_delta(phi, mock_size, bin_size, grid_size):
     return figure
 
 
-def main(path, name):
+def main(name, folder):
     '''
     Main function for the PCA analysis.
     
@@ -155,30 +158,25 @@ def main(path, name):
     Returns:
         duration (float): The duration of the PCA analysis
     '''
+    # Start
     start = time.time()
-    data_path = os.path.join(path, 'DATA/')
-    plot_path = os.path.join(path, 'PLOT/')
-    os.makedirs(os.path.join(plot_path, '{}/PCA/'.format(name)), exist_ok = True)
     
-    # Data
-    data_name = os.path.join(data_path, '{}/INPUT.hdf5'.format(name))
-    with h5py.File(data_name, 'r') as file:
-        input_sample = file['sample'][:].astype(numpy.float64)
-    mock_size, bin_size, grid_size = input_sample.shape
+    # Path
+    path = os.path.join(folder, '{}/'.format(name))
+    os.makedirs(os.path.join(path, 'PCA/'), exist_ok = True)
     
     # Input
-    delta = 0.01
-    input_data = numpy.maximum(input_sample, 0.0)
-    input_data = input_data / numpy.sum(input_data, axis=2, keepdims=True) / delta
+    with h5py.File(os.path.join(path, 'ENSEMBLE.hdf5'), 'r') as file:
+        input_data = file['select'][:].astype(numpy.float64)
+    mock_size, bin_size, data_size = input_data.shape
     
     # PCA
-    latent_size = 128
+    latent_size = 64
     pca_model = decomposition.PCA(n_components = latent_size)
     
-    latent_data = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * grid_size)))
-    output_data = numpy.reshape(pca_model.inverse_transform(latent_data), (mock_size, bin_size, grid_size))
-    
-    pca_data = numpy.reshape(pca_model.components_, (latent_size, bin_size, grid_size))
+    latent_data = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * data_size)))
+    output_data = numpy.reshape(pca_model.inverse_transform(latent_data), (mock_size, bin_size, data_size))
+    pca_data = numpy.reshape(pca_model.components_, (latent_size, bin_size, data_size))
     
     # Plot
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
@@ -189,20 +187,20 @@ def main(path, name):
     
     pca_size = 5
     for n in range(pca_size):
-        figure = plot_pca(pca_data[n, :, :], bin_size, grid_size)
-        figure.savefig(os.path.join(plot_path, '{}/PCA/PCA_{:.0f}.pdf'.format(name, n + 1)), bbox_inches = 'tight')
+        figure = plot_pca(pca_data[n, :, :], bin_size, data_size)
+        figure.savefig(os.path.join(path, 'PCA/PCA_{:.0f}.png'.format(n + 1)), bbox_inches='tight', dpi=512)
         pyplot.close(figure)
     
     figure = plot_variance(pca_model, latent_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/VARIANCE.pdf'.format(name)), bbox_inches = 'tight')
+    figure.savefig(os.path.join(path, 'PCA/VARIANCE.png'), bbox_inches='tight', dpi=512)
     pyplot.close(figure)
     
-    figure = plot_shift(input_data)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/SHIFT.pdf'.format(name)), bbox_inches = 'tight')
+    figure = plot_shift(input_data, data_size)
+    figure.savefig(os.path.join(path, 'PCA/SHIFT.png'), bbox_inches='tight', dpi=512)
     pyplot.close(figure)
     
-    figure = plot_delta(output_data, mock_size, bin_size, grid_size)
-    figure.savefig(os.path.join(plot_path, '{}/PCA/DELTA.pdf'.format(name)), bbox_inches = 'tight')
+    figure = plot_delta(output_data, mock_size, bin_size, data_size)
+    figure.savefig(os.path.join(path, 'PCA/DELTA.png'), bbox_inches='tight', dpi=512)
     pyplot.close(figure)
     
     # Return
@@ -214,12 +212,14 @@ def main(path, name):
 
 
 if __name__ == '__main__':
-    
     # Input
     PARSE = argparse.ArgumentParser(description='PCA')
-    PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the datasets.')
+    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets.')
     
-    PATH = PARSE.parse_args().path
+    # Parse
     NAME = PARSE.parse_args().name
-    RESULT = main(PATH, NAME)
+    FOLDER = PARSE.parse_args().folder
+    
+    # Output
+    OUTPUT = main(NAME, FOLDER)
