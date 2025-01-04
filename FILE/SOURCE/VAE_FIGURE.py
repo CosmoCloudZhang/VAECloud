@@ -259,7 +259,7 @@ def main(name, folder):
     latent_size = info['META']['LATENT_SIZE']
     
     # Data
-    with h5py.File(os.path.join(path, '{}/DATA.hdf5'.format(name)), 'r') as file:
+    with h5py.File(os.path.join(path, 'VAE/DATA.hdf5'), 'r') as file:
         test_input = numpy.array(file['TEST_INPUT'])
         test_output = numpy.array(file['TEST_OUTPUT'])
         latent_data = numpy.array(file['LATENT_DATA'])
@@ -327,12 +327,14 @@ def main(name, folder):
 
 
 if __name__ == '__main__':
-    
     # Input
-    PARSE = argparse.ArgumentParser(description='VAE PCA Figure')
-    PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
+    PARSE = argparse.ArgumentParser(description='VAE Figure')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the datasets.')
+    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets.')
     
-    PATH = PARSE.parse_args().path
+    # Parse
     NAME = PARSE.parse_args().name
-    RESULT = main(PATH, NAME)
+    FOLDER = PARSE.parse_args().folder
+    
+    # Output
+    OUTPUT = main(NAME, FOLDER)

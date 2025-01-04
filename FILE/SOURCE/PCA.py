@@ -9,6 +9,73 @@ import scipy.interpolate
 from sklearn import decomposition
 from matplotlib import pyplot, colors
 
+def plot_data(phi, bin_size, data_size):
+    '''
+    Plot the data.
+    
+    Arguments:
+        phi (numpy.ndarray): The data.
+        z_grid (numpy.ndarray): The grid.
+    
+    Returns:
+        figure (matplotlib.figure.Figure): The figure.
+    '''
+    # Redshift
+    z1 = 0.0
+    z2 = 3.0
+    z_grid = numpy.linspace(z1, z2, data_size)
+    
+    # Plot
+    figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
+    color_list = ['darkmagenta', 'darkblue', 'darkgreen', 'darkorange', 'darkred']
+    
+    for m in range(bin_size):
+        
+        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m].replace('dark', ''), linewidth = 0.05, alpha = 0.05)
+        
+        plot.plot(z_grid, numpy.mean(phi[:, m, :], axis = 0), color = color_list[m], linewidth = 5.0, label = r'$m = {:.0f}$'.format(m + 1))
+    
+    plot.legend()
+    plot.set_xlim(z1, z2)
+    plot.set_ylim(0.0, 8.0)
+    
+    plot.set_xlabel(r'$z$')
+    plot.set_ylabel(r'$\phi^m (z)$')
+    
+    return figure
+
+
+def plot_covariance(phi, bin_size, data_size):
+    '''
+    Plot the covariance.
+    
+    Arguments:
+        phi (numpy.ndarray): The data.
+        bin_size (int): The bin size.
+        data_size (int): The grid size.
+    
+    Returns:
+        figure (matplotlib.figure.Figure): The figure.
+    '''
+    figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
+    
+    covariance = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar = False)
+    norm = colors.Normalize(vmin = -0.25, vmax = +0.25)
+    
+    for m in range(bin_size):
+        for n in range(bin_size):
+            
+            map = covariance[n * data_size: n * data_size + data_size // 2, m * data_size: m * data_size + data_size // 2]
+            image = plot[n, m].imshow(map, norm = norm, cmap = 'coolwarm', origin = 'upper')
+            plot[n, m].axis('off')
+    
+    cax = figure.add_axes([0.15, 0.05, 0.72, 0.05])
+    figure.subplots_adjust(wspace = 0.02, hspace = 0.02)
+    figure.colorbar(cax = cax, mappable = image, orientation = 'horizontal', label = r'$\mathrm{Cov} \: [\phi^{m_1} (z_1), \phi^{m_2} (z_2)]$')
+    
+    return figure
+
+
 def plot_pca(phi, bin_size, data_size):
     '''
     Plot the PCA.
@@ -126,17 +193,16 @@ def plot_delta(phi, mock_size, bin_size, data_size):
         phi_shift[:, m, :] = scipy.interpolate.CubicSpline(z_grid, phi_mean[m, :], extrapolate=True)(z_shift[:, m, :])
     
     # Delta
-    delta = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar=False)
-    delta = delta - numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * data_size)), rowvar=False)
+    matrix = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar=False) - numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * data_size)), rowvar=False)
     
     # Plot
-    norm = colors.Normalize(vmin = -0.1, vmax = +0.1)
+    norm = colors.Normalize(vmin = -0.25, vmax = +0.25)
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     for m in range(bin_size):
         for n in range(bin_size):
             
-            map = delta[n * data_size: n * data_size + data_size // 2, m * data_size: m * data_size + data_size // 2]
+            map = matrix[n * data_size: n * data_size + data_size // 2, m * data_size: m * data_size + data_size // 2]
             image = plot[n, m].imshow(map, norm = norm, cmap = 'coolwarm', origin = 'upper')
             plot[n, m].axis('off')
     
@@ -167,7 +233,7 @@ def main(name, folder):
     
     # Input
     with h5py.File(os.path.join(path, 'ENSEMBLE.hdf5'), 'r') as file:
-        input_data = file['select'][:].astype(numpy.float64)
+        input_data = file['data'][:].astype(numpy.float64)
     mock_size, bin_size, data_size = input_data.shape
     
     # PCA
@@ -184,6 +250,14 @@ def main(name, folder):
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 20
+    
+    figure = plot_data(input_data[numpy.random.choice(mock_size, size=25000, replace=False), :, :], bin_size, data_size)
+    figure.savefig(os.path.join(path, 'PCA/INPUT_DATA.png'), bbox_inches = 'tight', dpi = 512)
+    pyplot.close(figure)
+    
+    figure = plot_covariance(input_data, bin_size, data_size)
+    figure.savefig(os.path.join(path, 'PCA/INPUT_COVARIANCE.png'), bbox_inches = 'tight', dpi = 512)
+    pyplot.close(figure)
     
     pca_size = 5
     for n in range(pca_size):
