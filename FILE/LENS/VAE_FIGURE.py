@@ -84,11 +84,9 @@ def plot_data(phi, bin_size, data_size):
     
     for m in range(bin_size):
         
-        phi0 = numpy.mean(phi[:, m, :], axis = 0)
+        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m].replace('dark', ''), linewidth = 0.05, alpha = 0.05)
         
-        plot.plot(z_grid, phi0, color = color_list[m], linewidth = 2.5, label = r'$m = {:.0f}$'.format(m + 1))
-        
-        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.025, alpha = 0.0125)
+        plot.plot(z_grid, numpy.mean(phi[:, m, :], axis = 0), color = color_list[m], linewidth = 5.0, label = r'$m = {:.0f}$'.format(m + 1))
     
     plot.legend()
     plot.set_xlim(z1, z2)
@@ -115,7 +113,7 @@ def plot_covariance(phi, bin_size, data_size):
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     covariance = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar = False)
-    norm = colors.Normalize(vmin = -0.1, vmax = +0.1)
+    norm = colors.Normalize(vmin = -0.25, vmax = +0.25)
     
     for m in range(bin_size):
         for n in range(bin_size):
@@ -151,7 +149,7 @@ def plot_delta(input_phi, output_phi, bin_size, data_size):
     output_covariance = numpy.cov(output_data, rowvar = False)
     covariance = numpy.subtract(input_covariance, output_covariance)
     
-    norm = colors.Normalize(vmin = -0.05, vmax = +0.05)
+    norm = colors.Normalize(vmin = -0.25, vmax = +0.25)
     figure, plot = pyplot.subplots(nrows = bin_size, ncols = bin_size, figsize = (3 * bin_size, 3 * bin_size))
     
     for m in range(bin_size):
@@ -259,7 +257,7 @@ def main(name, folder):
     latent_size = info['META']['LATENT_SIZE']
     
     # Data
-    with h5py.File(os.path.join(path, '{}/DATA.hdf5'.format(name)), 'r') as file:
+    with h5py.File(os.path.join(path, 'VAE/DATA.hdf5'), 'r') as file:
         test_input = numpy.array(file['TEST_INPUT'])
         test_output = numpy.array(file['TEST_OUTPUT'])
         latent_data = numpy.array(file['LATENT_DATA'])
@@ -285,20 +283,13 @@ def main(name, folder):
     figure = plot_loss(epoch_size, history)
     figure.savefig(os.path.join(path, 'VAE/LOSS.png'), bbox_inches = 'tight')
     pyplot.close(figure)
-    # Data
-    figure = plot_data(test_input[select, :, :], bin_size, data_size)
-    figure.savefig(os.path.join(path, 'VAE/INPUT_DATA.png'), bbox_inches = 'tight')
-    pyplot.close(figure)
     
+    # Data
     figure = plot_data(test_output[select, :, :], bin_size, data_size)
     figure.savefig(os.path.join(path, 'VAE/OUTPUT_DATA.png'), bbox_inches = 'tight', dpi = 512)
     pyplot.close(figure)
     
     # Covariance
-    figure = plot_covariance(test_input, bin_size, data_size)
-    figure.savefig(os.path.join(path, 'VAE/INPUT_COVARIANCE.png'), bbox_inches = 'tight', dpi = 512)
-    pyplot.close(figure)
-    
     figure = plot_covariance(test_output, bin_size, data_size)
     figure.savefig(os.path.join(path, 'VAE/OUTPUT_COVARIANCE.png'), bbox_inches = 'tight', dpi = 512)
     pyplot.close(figure)
@@ -327,12 +318,14 @@ def main(name, folder):
 
 
 if __name__ == '__main__':
-    
     # Input
-    PARSE = argparse.ArgumentParser(description='VAE PCA Figure')
-    PARSE.add_argument('--path', type=str, required=True, help='The path to the base folder')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the sample datasets')
+    PARSE = argparse.ArgumentParser(description='VAE Figure')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the datasets.')
+    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets.')
     
-    PATH = PARSE.parse_args().path
+    # Parse
     NAME = PARSE.parse_args().name
-    RESULT = main(PATH, NAME)
+    FOLDER = PARSE.parse_args().folder
+    
+    # Output
+    OUTPUT = main(NAME, FOLDER)

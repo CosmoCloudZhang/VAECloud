@@ -512,7 +512,7 @@ def main(name, folder):
     tensorflow.random.set_seed(seed)
     
     # Hyperparameters
-    pca_size = 128
+    pca_size = 64
     latent_size = 5
     epoch_size = 1024
     batch_size = 4096
