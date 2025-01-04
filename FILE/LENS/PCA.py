@@ -31,9 +31,9 @@ def plot_data(phi, bin_size, data_size):
     
     for m in range(bin_size):
         
-        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m].replace('dark', ''), linewidth = 0.05, alpha = 0.05)
+        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.04, alpha = 0.04)
         
-        plot.plot(z_grid, numpy.mean(phi[:, m, :], axis = 0), color = color_list[m], linewidth = 5.0, label = r'$m = {:.0f}$'.format(m + 1))
+        plot.plot(z_grid, numpy.mean(phi[:, m, :], axis=0), color = color_list[m], linewidth = 5.0, label=r'$m = {:.0f}$'.format(m + 1))
     
     plot.legend()
     plot.set_xlim(z1, z2)
@@ -251,7 +251,7 @@ def main(name, folder):
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 20
     
-    figure = plot_data(input_data[numpy.random.choice(mock_size, size=25000, replace=False), :, :], bin_size, data_size)
+    figure = plot_data(input_data[numpy.random.choice(mock_size, size=20000, replace=False), :, :], bin_size, data_size)
     figure.savefig(os.path.join(path, 'PCA/INPUT_DATA.png'), bbox_inches = 'tight', dpi = 512)
     pyplot.close(figure)
     

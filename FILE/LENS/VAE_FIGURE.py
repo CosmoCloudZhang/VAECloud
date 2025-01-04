@@ -84,7 +84,7 @@ def plot_data(phi, bin_size, data_size):
     
     for m in range(bin_size):
         
-        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m].replace('dark', ''), linewidth = 0.05, alpha = 0.05)
+        plot.plot(z_grid, numpy.transpose(phi[:, m, :]), color = color_list[m], linewidth = 0.04, alpha = 0.04)
         
         plot.plot(z_grid, numpy.mean(phi[:, m, :], axis = 0), color = color_list[m], linewidth = 5.0, label = r'$m = {:.0f}$'.format(m + 1))
     
@@ -276,7 +276,7 @@ def main(name, folder):
     
     # Plot
     test_size = mock_size // 10
-    plot_size = mock_size // 50
+    plot_size = mock_size // 20
     select = numpy.random.choice(numpy.arange(test_size), plot_size, replace = False)
     
     # Loss
