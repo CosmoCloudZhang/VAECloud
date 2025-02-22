@@ -20,7 +20,7 @@ module load cray-hdf5-parallel
 # Initialize the process
 NAME="SOURCE"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
-BASE_FOLDER="/global/cfs/cdirs/lsst/groups/PZ/users/CosmoCloud/VAECloud/"
+BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run the application
 python -u "${BASE_PATH}/FILE/${NAME}/PCA.py" --name=$NAME --folder=$BASE_FOLDER

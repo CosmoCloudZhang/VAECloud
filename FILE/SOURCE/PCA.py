@@ -193,7 +193,7 @@ def plot_delta(phi, mock_size, bin_size, data_size):
         phi_shift[:, m, :] = scipy.interpolate.CubicSpline(z_grid, phi_mean[m, :], extrapolate=True)(z_shift[:, m, :])
     
     # Delta
-    matrix = numpy.cov(numpy.reshape(phi, (-1, bin_size * data_size)), rowvar=False) - numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * data_size)), rowvar=False)
+    matrix = numpy.cov(numpy.reshape(phi_shift, (-1, bin_size * data_size)), rowvar=False)
     
     # Plot
     norm = colors.Normalize(vmin = -0.25, vmax = +0.25)
