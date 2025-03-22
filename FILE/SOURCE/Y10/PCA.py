@@ -46,10 +46,9 @@ def main(tag, name, type, label, folder, directory):
     # PCA
     pca_size = 128
     pca_model = decomposition.PCA(n_components = pca_size)
-    
     eigenvalue_data = pca_model.fit_transform(numpy.reshape(input_data, (data_size, bin_size * z_size)))
-    eigenvector_data = numpy.reshape(pca_model.components_, (pca_size, bin_size, z_size))
     
+    eigenvector_data = numpy.reshape(pca_model.components_, (pca_size, bin_size, z_size))
     output_data = numpy.reshape(pca_model.inverse_transform(eigenvalue_data), (data_size, bin_size, z_size))
     
     # Save
