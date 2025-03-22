@@ -55,7 +55,7 @@ def main(tag, folder):
     for n in range(pca_lens_size):
         figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
         
-        plot.hist(pca_lens_eigenvalue[:, n], range = (- 5 * pca_lens_sigma[n], 5 * pca_lens_sigma[n]), bins = 100, density = False, color = 'black', histtype='step')
+        plot.hist(pca_lens_eigenvalue[:, n], range = (- 5 * pca_lens_sigma[n], 5 * pca_lens_sigma[n]), bins = 100, density = False, color = 'black', alpha = 0.5)
         
         plot.set_xlim(- 5 * pca_lens_sigma[n], 5 * pca_lens_sigma[n])
         
@@ -66,7 +66,7 @@ def main(tag, folder):
     for n in range(pca_source_size):
         figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
         
-        plot.hist(pca_source_eigenvalue[:, n], range = (- 5 * pca_source_sigma[n], 5 * pca_source_sigma[n]), bins = 100, density = False, color = 'black', histtype='step')
+        plot.hist(pca_source_eigenvalue[:, n], range = (- 5 * pca_source_sigma[n], 5 * pca_source_sigma[n]), bins = 100, density = False, color = 'black', alpha = 0.5)
         
         plot.set_xlim(- 5 * pca_source_sigma[n], 5 * pca_source_sigma[n])
         
