@@ -6,7 +6,6 @@ import numpy
 import pickle
 import random
 import argparse
-from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
 import tensorflow
@@ -486,24 +485,28 @@ class VAE(Model):
         self.divergence_loss_tracker.update_state(divergence_loss)
         
         return {'all_loss': self.all_loss_tracker.result(), 'mean_loss': self.mean_loss_tracker.result(), 'scatter_loss': self.scatter_loss_tracker.result(), 'covariance_loss': self.covariance_loss_tracker.result(), 'divergence_loss': self.divergence_loss_tracker.result()}
-    
-def main(name, folder):
+
+
+def main(tag, name, folder):
     '''
-    Main function for the PCA analysis.
+    Main function for the VAE analysis
     
     Arguments:
-        name (str): The name of the datasets.
-        folder (str): The base folder of the datasets.
+        tag (str): The tag of the configuration
+        name (str): The name of the galaxy sample
+        folder (str): The base folder of the dataset
     
     Returns:
-        duration (float): The duration of the PCA analysis
+        duration (float): The duration of the process
     '''
     # Start
     start = time.time()
     
     # Path
-    path = os.path.join(folder, '{}/'.format(name))
-    os.makedirs(os.path.join(path, 'VAE/'), exist_ok=True)
+    pca_folder = os.path.join(folder, '{}/{}/PCA/'.format(name, tag))
+    vae_folder = os.path.join(folder, '{}/{}/VAE/'.format(name, tag))
+    
+    os.makedirs(vae_folder, exist_ok = True)
     
     # Seed
     seed = 0
@@ -511,26 +514,30 @@ def main(name, folder):
     numpy.random.seed(seed)
     tensorflow.random.set_seed(seed)
     
+    # Input
+    with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'r') as file:
+        input_data = file['data'][...]
+    data_size, bin_size, z_size = input_data.shape
+    
+    # Load 
+    with open(os.path.join(pca_folder, 'MODEL.pkl'), 'rb') as file:
+        pca_model = pickle.load(file)
+    pca_size = pca_model.n_components_
+    
+    with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'r') as file:
+        pca_eigenvalue = file['eigenvalue'][...]
+    
+    # PCA
+    pca_scale = numpy.max(numpy.std(pca_eigenvalue, axis=0))
+    pca_input = pca_eigenvalue / pca_scale
+    print(pca_scale)
+    
     # Hyperparameters
-    pca_size = 64
     latent_size = 5
     epoch_size = 1024
     batch_size = 4096
     learning_rate = 2e-5
     theta = (1.0, 10.0, 10.0, 100.0)
-    
-    # Input
-    with h5py.File(os.path.join(path, 'ENSEMBLE.hdf5'), 'r') as file:
-        input_data = file['select'][:].astype(numpy.float64)
-    mock_size, bin_size, data_size = input_data.shape
-    
-    # PCA
-    pca_model = decomposition.PCA(n_components = pca_size)
-    pca_input = pca_model.fit_transform(numpy.reshape(input_data, (mock_size, bin_size * data_size)))
-    
-    pca_scale = numpy.max(numpy.std(pca_input, axis=0))
-    pca_input = pca_input / pca_scale
-    print(pca_scale)
     
     # Split
     train_data, evaluation_data = train_test_split(pca_input, test_size=0.2)
@@ -544,44 +551,44 @@ def main(name, folder):
     # Model
     strategy = tensorflow.distribute.MirroredStrategy()
     with strategy.scope():
+        
         # Train
         vae_model = VAE(theta, pca_size, latent_size)
         vae_model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
         history = vae_model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
         
         # Test
-        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, data_size))
-        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, data_size))
+        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, z_size))
+        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, z_size))
         
         # Latent
         latent_mu, latent_logvar = vae_model.encoder(test_data)
         latent_data = vae_model.sampler(latent_mu, latent_logvar)
         
         # Save
-        vae_model.save(os.path.join(path, 'VAE/MODEL'))
-        with open(os.path.join(path, 'PCA/MODEL.pkl'), 'wb') as file:
-            pickle.dump(pca_model, file)
+        vae_model.save(os.path.join(vae_folder, 'MODEL/'))
         
         meta = {
-            'PCA_SIZE': pca_size,
-            'BIN_SIZE': bin_size,
-            'PCA_SCALE': pca_scale,
-            'DATA_SIZE': data_size, 
-            'MOCK_SIZE': mock_size,
-            'EPOCH_SIZE': epoch_size,
-            'BATCH_SIZE': batch_size,
-            'LATENT_SIZE': latent_size,
-            'LEARNING_RATE': learning_rate
+            'z_size': z_size,
+            'pca_size': pca_size,
+            'bin_size': bin_size,
+            'pca_scale': pca_scale,
+            'data_size': data_size,
+            'epoch_size': epoch_size,
+            'batch_size': batch_size,
+            'latent_size': latent_size,
+            'learning_rate': learning_rate
         }
         
         info = {'META': meta, 'HISTORY': history.history}
-        with open(os.path.join(path, 'VAE/INFO.json'), 'w') as file:
+        with open(os.path.join(vae_folder, 'INFO.json'), 'w') as file:
             json.dump(info, file, indent=4)
         
-        with h5py.File(os.path.join(path, 'VAE/DATA.hdf5'), 'w') as file:
-            file.create_dataset('TEST_INPUT', data=test_input)
-            file.create_dataset('TEST_OUTPUT', data=test_output)
-            file.create_dataset('LATENT_DATA', data=latent_data)
+        with h5py.File(os.path.join(vae_folder, 'DATA.hdf5'), 'w') as file:
+            file.create_dataset('input', data=test_input)
+            file.create_dataset('output', data=test_output)
+            file.create_dataset('latent', data=latent_data)
+    
     # Duration
     end = time.time()
     duration = (end - start) / 60
@@ -590,15 +597,18 @@ def main(name, folder):
     print('Time: {:.2f} minutes'.format(duration))
     return duration
 
+
 if __name__ == '__main__':
     # Input
     PARSE = argparse.ArgumentParser(description='VAE')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the datasets.')
-    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets.')
+    PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
+    PARSE.add_argument('--name', type=str, required=True, help='The name of the galaxy sample')
+    PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
     
     # Parse
+    TAG = PARSE.parse_args().tag
     NAME = PARSE.parse_args().name
     FOLDER = PARSE.parse_args().folder
     
     # Output
-    OUTPUT = main(NAME, FOLDER)
+    OUTPUT = main(TAG, NAME, FOLDER)
