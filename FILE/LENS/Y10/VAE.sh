@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH -A m1727
-#SBATCH --nodes=1
+#SBATCH --nodes=4
 #SBATCH -q regular
+#SBATCH -J LENS_VAE
 #SBATCH --time=04:00:00
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu
 #SBATCH -o LOG/%x_%j.out
-#SBATCH -J LENS_VAE_FIGURE
 #SBATCH --cpus-per-task=128
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
@@ -23,4 +23,4 @@ BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
 BASE_FOLDER="/global/cfs/cdirs/lsst/groups/PZ/users/CosmoCloud/VAECloud/"
 
 # Run the application
-python -u "${BASE_PATH}/FILE/${NAME}/VAE_FIGURE.py" --name=$NAME --folder=$BASE_FOLDER
+python -u "${BASE_PATH}/FILE/${NAME}/VAE_MODEL.py" --name=$NAME --folder=$BASE_FOLDER
