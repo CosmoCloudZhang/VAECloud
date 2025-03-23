@@ -508,7 +508,7 @@ def main(tag, name, folder):
     os.makedirs(vae_folder, exist_ok = True)
     
     # Seed
-    seed = 0
+    seed = 1
     random.seed(seed)
     numpy.random.seed(seed)
     tensorflow.random.set_seed(seed)
@@ -569,6 +569,7 @@ def main(tag, name, folder):
             file['data'].create_dataset('output', data=test_output_data)
             
             file.create_group('meta')
+            file['meta'].create_dataset('theta', data=theta)
             file['meta'].create_dataset('z_size', data=z_size)
             file['meta'].create_dataset('pca_size', data=pca_size)
             file['meta'].create_dataset('bin_size', data=bin_size)
@@ -581,11 +582,8 @@ def main(tag, name, folder):
             
             file.create_group('history')
             file['history'].create_dataset('epoch', data=history.epoch)
-            file['history'].create_dataset('all_loss', data=history.history['all_loss'])
-            file['history'].create_dataset('mean_loss', data=history.history['mean_loss'])
-            file['history'].create_dataset('scatter_loss', data=history.history['scatter_loss'])
-            file['history'].create_dataset('covariance_loss', data=history.history['covariance_loss'])
-            file['history'].create_dataset('divergence_loss', data=history.history['divergence_loss'])
+            for key, value in history.history.items():
+                file['history'].create_dataset(key, data=value)
     
     # Duration
     end = time.time()
