@@ -6,9 +6,9 @@
 #SBATCH --mail-type=END
 #SBATCH --constraint=gpu
 #SBATCH -o LOG/%x_%j.out
+#SBATCH -J FIGURE_Y1_LATENT
 #SBATCH --cpus-per-task=128
 #SBATCH --ntasks-per-node=1
-#SBATCH -J FIGURE_Y1_VARIANCE
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
@@ -23,4 +23,4 @@ BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
 BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run the application
-python -u "${BASE_PATH}/FILE/FIGURE/${TAG}/VARIANCE.py" --tag=$TAG --folder=$BASE_FOLDER
+python -u "${BASE_PATH}/FILE/FIGURE/${TAG}/LATENT.py" --tag=$TAG --folder=$BASE_FOLDER
