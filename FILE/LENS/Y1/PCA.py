@@ -26,25 +26,19 @@ def main(tag, name, type, label, folder, directory):
     start = time.time()
     
     # Path
-    pca_folder = os.path.join(folder, '{}/{}/PCA/'.format(name, tag))
-    ensemble_folder = os.path.join(folder, '{}/{}/ENSEMBLE/'.format(name, tag))
-    
     os.makedirs(os.path.join(folder, '{}/'.format(name)), exist_ok = True)
     os.makedirs(os.path.join(folder, '{}/{}/'.format(name, tag)), exist_ok = True)
     
+    pca_folder = os.path.join(folder, '{}/{}/PCA/'.format(name, tag))
     os.makedirs(pca_folder, exist_ok = True)
-    os.makedirs(ensemble_folder, exist_ok = True)
     
     # Load 
     with h5py.File(os.path.join(directory, 'SYNTHESIZE/{}/{}_{}.hdf5'.format(tag, type, label)), 'r') as file:
         input_data = file[name.lower()]['data'][...]
-        input_average = file[name.lower()]['average'][...]
-    
     data_size, bin_size, z_size = input_data.shape
-    bin_size, z_size = input_average.shape
     
     # PCA
-    pca_size = 128
+    pca_size = 150
     pca_model = decomposition.PCA(n_components = pca_size)
     eigenvalue_data = pca_model.fit_transform(numpy.reshape(input_data, (data_size, bin_size * z_size)))
     
@@ -52,14 +46,11 @@ def main(tag, name, type, label, folder, directory):
     output_data = numpy.reshape(pca_model.inverse_transform(eigenvalue_data), (data_size, bin_size, z_size))
     
     # Save
-    with h5py.File(os.path.join(ensemble_folder, 'INPUT.hdf5'), 'w') as file:
-        file.create_dataset('data', data = input_data)
-        file.create_dataset('average', data = input_average)
-    
     with open(os.path.join(pca_folder, 'MODEL.pkl'), 'wb') as file:
         pickle.dump(pca_model, file)
     
     with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'w') as file:
+        file.create_dataset('input', data = input_data)
         file.create_dataset('output', data = output_data)
         file.create_dataset('eigenvalue', data = eigenvalue_data)
         file.create_dataset('eigenvector', data = eigenvector_data)

@@ -1,6 +1,5 @@
 import os
 import time
-import json
 import h5py
 import numpy
 import pickle
@@ -9,8 +8,8 @@ import argparse
 from sklearn.model_selection import train_test_split
 
 import tensorflow
+from tensorflow import math, keras
 from tensorflow_probability import stats
-from tensorflow import math, keras, linalg
 
 from keras.regularizers import L2
 from keras.initializers import HeNormal
@@ -142,22 +141,22 @@ class Encoder(Layer):
             kernel_initializer=HeNormal()
         )
     
-    def call(self, input_data):
+    def call(self, input_value):
         '''
         Call function for the encoder.
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input_value (numpy.ndarray): The input data.
         
         Returns:
             latent_mu (numpy.ndarray): The mean of the latent space.
             latent_logvar (numpy.ndarray): The log-variance of the latent space.
         '''
         
-        latent_data = self.encoder(input_data)
+        latent_value = self.encoder(input_value)
         
-        latent_mu = self.mu(latent_data)
-        latent_logvar = self.logvar(latent_data)
+        latent_mu = self.mu(latent_value)
+        latent_logvar = self.logvar(latent_value)
         
         return latent_mu, latent_logvar
 
@@ -170,7 +169,7 @@ class Decoder(Layer):
         Layer (keras.layers.Layer): The base class for the decoder.
     
     Returns:
-        output_data (keras.layers.Conv1DTranspose): The output data.
+        output_value (keras.layers.Conv1DTranspose): The output data.
     '''
     def __init__(self, pca_size):
         '''
@@ -273,18 +272,18 @@ class Decoder(Layer):
             kernel_initializer=HeNormal()
         ))
     
-    def call(self, latent_data):
+    def call(self, latent_value):
         '''
         Call function for the decoder.
         
         Arguments:
-            latent_data (numpy.ndarray): The latent data.
+            latent_value (numpy.ndarray): The latent data.
         
         Returns:
-            output_data (numpy.ndarray): The output data.
+            output_value (numpy.ndarray): The output data.
         '''
-        output_data = self.decoder(latent_data)
-        return output_data
+        output_value = self.decoder(latent_value)
+        return output_value
 
 @keras.saving.register_keras_serializable()
 class VAE(Model):
@@ -292,14 +291,14 @@ class VAE(Model):
     VAE class for the VAE model.
     
     Arguments:
-        Model (keras.Model): The base class for the VAE.
+        Model (keras.Model): The base class for the VAE
     
     Returns:
         None
     '''
     def __init__(self, theta, pca_size, latent_size):
         '''
-        Initialization function for the VAE.
+        Initialization function for the VAE
         
         Arguments:
             data_size (tuple): The size of the data.
@@ -320,22 +319,22 @@ class VAE(Model):
         self.covariance_loss_tracker = keras.metrics.Mean(name='covariance_loss')
         self.divergence_loss_tracker = keras.metrics.Mean(name='divergence_loss')
     
-    def call(self, input_data):
+    def call(self, input_value):
         '''
-        Call function for the VAE.
+        Call function for the VAE
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input_value (numpy.ndarray): The input data.
         
         Returns:
-            output_data (numpy.ndarray): The output data.
+            output_value (numpy.ndarray): The output data.
         '''
         
-        latent_mu, latent_logvar = self.encoder(input_data)
-        latent_data = self.sampler(latent_mu, latent_logvar)
-        output_data = self.decoder(latent_data)
+        latent_mu, latent_logvar = self.encoder(input_value)
+        latent_value = self.sampler(latent_mu, latent_logvar)
+        output_value = self.decoder(latent_value)
         
-        return output_data
+        return output_value
     
     @property
     def metrics(self):
@@ -350,51 +349,51 @@ class VAE(Model):
         '''
         return [self.all_loss_tracker, self.mean_loss_tracker, self.scatter_loss_tracker, self.covariance_loss_tracker, self.divergence_loss_tracker]
     
-    def mean_loss(self, input_data, output_data):
+    def mean_loss(self, input_value, output_value):
         '''
-        Mean loss function for the VAE.
+        Mean loss function for the VAE
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
-            output_data (numpy.ndarray): The output data.
+            input_value (numpy.ndarray): The input data.
+            output_value (numpy.ndarray): The output data.
         
         Returns:
             float: The mean loss.
         '''
-        input_mean = math.reduce_mean(input_data, axis=0)
-        output_mean = math.reduce_mean(output_data, axis=0)
+        input_mean = math.reduce_mean(input_value, axis=0)
+        output_mean = math.reduce_mean(output_value, axis=0)
         return math.reduce_mean(losses.mean_squared_error(input_mean, output_mean))
     
-    def scatter_loss(self, input_data, output_data):
+    def scatter_loss(self, input_value, output_value):
         '''
-        Scatter loss function for the VAE.
+        Scatter loss function for the VAE
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
-            output_data (numpy.ndarray): The output data.
+            input_value (numpy.ndarray): The input data.
+            output_value (numpy.ndarray): The output data.
         '''
-        input_scatter = math.reduce_std(input_data, axis=0)
-        output_scatter = math.reduce_std(output_data, axis=0)
+        input_scatter = math.reduce_std(input_value, axis=0)
+        output_scatter = math.reduce_std(output_value, axis=0)
         return math.reduce_mean(losses.mean_squared_error(input_scatter, output_scatter))
     
-    def covariance_loss(self, input_data, output_data):
+    def covariance_loss(self, input_value, output_value):
         '''
-        Covariance loss function for the VAE.
+        Covariance loss function for the VAE
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
-            output_data (numpy.ndarray): The output data.
+            input_value (numpy.ndarray): The input data.
+            output_value (numpy.ndarray): The output data.
         
         Returns:
             float: The covariance loss.
         '''
-        input_covariance = stats.covariance(input_data, sample_axis=0)
-        output_covariance = stats.covariance(output_data, sample_axis=0)
+        input_covariance = stats.covariance(input_value, sample_axis=0)
+        output_covariance = stats.covariance(output_value, sample_axis=0)
         return math.reduce_mean(losses.mean_absolute_error(input_covariance, output_covariance))
     
     def divergence_loss(self, latent_mu, latent_logvar):
         '''
-        Divergence loss function for the VAE.
+        Divergence loss function for the VAE
         
         Arguments:
             latent_mu (numpy.ndarray): The mean of the latent space.
@@ -407,11 +406,11 @@ class VAE(Model):
     
     def sampler(self, mu, logvar):
         '''
-        Sampler function for the VAE.
+        Sampler function for the VAE
         
         Arguments:
-            mu (numpy.ndarray): The mean of the latent space.
-            logvar (numpy.ndarray): The log-variance of the latent space.
+            mu (numpy.ndarray): The mean of the latent space
+            logvar (numpy.ndarray): The log-variance of the latent space
         
         Returns:
             numpy.ndarray: The sampled latent data.
@@ -419,25 +418,25 @@ class VAE(Model):
         epsilon = tensorflow.random.normal(shape=tensorflow.shape(mu))
         return mu + epsilon * math.exp(0.5 * logvar)
     
-    def train_step(self, input_data):
+    def train_step(self, input_value):
         '''
-        Train step function for the VAE.
+        Train step function for the VAE
         
         Arguments:
-            input_data (numpy.ndarray): The input data.
+            input_value (numpy.ndarray): The input data
         
         Returns:
             dict: The dictionary of losses.
         '''
         with tensorflow.GradientTape() as tape:
             
-            latent_mu, latent_logvar = self.encoder(input_data)
-            latent_data = self.sampler(latent_mu, latent_logvar)
-            output_data = self.decoder(latent_data)
+            latent_mu, latent_logvar = self.encoder(input_value)
+            latent_value = self.sampler(latent_mu, latent_logvar)
+            output_value = self.decoder(latent_value)
             
-            mean_loss = self.mean_loss(input_data, output_data)
-            scatter_loss = self.scatter_loss(input_data, output_data)
-            covariance_loss = self.covariance_loss(input_data, output_data)
+            mean_loss = self.mean_loss(input_value, output_value)
+            scatter_loss = self.scatter_loss(input_value, output_value)
+            covariance_loss = self.covariance_loss(input_value, output_value)
             divergence_loss = self.divergence_loss(latent_mu, latent_logvar)
             
             alpha, beta, gamma, kappa = self.theta
@@ -454,25 +453,25 @@ class VAE(Model):
         
         return {'all_loss': self.all_loss_tracker.result(), 'mean_loss': self.mean_loss_tracker.result(), 'scatter_loss': self.scatter_loss_tracker.result(), 'covariance_loss': self.covariance_loss_tracker.result(), 'divergence_loss': self.divergence_loss_tracker.result()}
     
-    def test_step(self, validation_data):
+    def test_step(self, validation_value):
         '''
-        Test step function for the VAE.
+        Test step function for the VAE
         
         Arguments:
-            test_data (numpy.ndarray): The test data.
+            test_value (numpy.ndarray): The test data
         
         Returns:
             dict: The dictionary of losses.
         '''
-        input_data, input_data = validation_data
+        input_value, input_value = validation_value
         
-        latent_mu, latent_logvar = self.encoder(input_data)
-        latent_data = self.sampler(latent_mu, latent_logvar)
-        output_data = self.decoder(latent_data)
+        latent_mu, latent_logvar = self.encoder(input_value)
+        latent_value = self.sampler(latent_mu, latent_logvar)
+        output_value = self.decoder(latent_value)
         
-        mean_loss = self.mean_loss(input_data, output_data)
-        scatter_loss = self.scatter_loss(input_data, output_data)
-        covariance_loss = self.covariance_loss(input_data, output_data)
+        mean_loss = self.mean_loss(input_value, output_value)
+        scatter_loss = self.scatter_loss(input_value, output_value)
+        covariance_loss = self.covariance_loss(input_value, output_value)
         divergence_loss = self.divergence_loss(latent_mu, latent_logvar)
         
         alpha, beta, gamma, kappa = self.theta
@@ -514,23 +513,19 @@ def main(tag, name, folder):
     numpy.random.seed(seed)
     tensorflow.random.set_seed(seed)
     
-    # Input
-    with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'r') as file:
-        input_data = file['data'][...]
-    data_size, bin_size, z_size = input_data.shape
-    
     # Load 
     with open(os.path.join(pca_folder, 'MODEL.pkl'), 'rb') as file:
         pca_model = pickle.load(file)
     pca_size = pca_model.n_components_
     
     with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'r') as file:
+        input_data = file['input'][...]
         pca_eigenvalue = file['eigenvalue'][...]
+    data_size, bin_size, z_size = input_data.shape
     
     # PCA
     pca_scale = numpy.max(numpy.std(pca_eigenvalue, axis=0))
-    pca_input = pca_eigenvalue / pca_scale
-    print(pca_scale)
+    input_value = pca_eigenvalue / pca_scale
     
     # Hyperparameters
     latent_size = 5
@@ -540,8 +535,8 @@ def main(tag, name, folder):
     theta = (1.0, 10.0, 10.0, 100.0)
     
     # Split
-    train_data, evaluation_data = train_test_split(pca_input, test_size=0.2)
-    validation_data, test_data = train_test_split(evaluation_data, test_size=0.5)
+    train_value, evaluation_value = train_test_split(input_value, test_size=0.2)
+    validation_value, test_value = train_test_split(evaluation_value, test_size=0.5)
     
     # Device
     devices = tensorflow.config.experimental.list_physical_devices('GPU')
@@ -555,39 +550,42 @@ def main(tag, name, folder):
         # Train
         vae_model = VAE(theta, pca_size, latent_size)
         vae_model.compile(optimizer = keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=1, clipnorm=1.0))
-        history = vae_model.fit(train_data, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_data, validation_data])
+        history = vae_model.fit(train_value, shuffle=True, verbose=2, batch_size=batch_size, epochs=epoch_size, validation_data=[validation_value, validation_value])
         
         # Test
-        test_input = numpy.reshape(pca_model.inverse_transform(test_data * pca_scale), (-1, bin_size, z_size))
-        test_output = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_data) * pca_scale), (-1, bin_size, z_size))
+        test_input_data = numpy.reshape(pca_model.inverse_transform(test_value * pca_scale), (-1, bin_size, z_size))
+        test_output_data = numpy.reshape(pca_model.inverse_transform(vae_model.predict(test_value) * pca_scale), (-1, bin_size, z_size))
         
         # Latent
-        latent_mu, latent_logvar = vae_model.encoder(test_data)
-        latent_data = vae_model.sampler(latent_mu, latent_logvar)
+        latent_mu, latent_logvar = vae_model.encoder(test_value)
+        latent_value = vae_model.sampler(latent_mu, latent_logvar)
         
         # Save
         vae_model.save(os.path.join(vae_folder, 'MODEL/'))
-        
-        meta = {
-            'z_size': z_size,
-            'pca_size': pca_size,
-            'bin_size': bin_size,
-            'pca_scale': pca_scale,
-            'data_size': data_size,
-            'epoch_size': epoch_size,
-            'batch_size': batch_size,
-            'latent_size': latent_size,
-            'learning_rate': learning_rate
-        }
-        
-        info = {'META': meta, 'HISTORY': history.history}
-        with open(os.path.join(vae_folder, 'INFO.json'), 'w') as file:
-            json.dump(info, file, indent=4)
-        
         with h5py.File(os.path.join(vae_folder, 'DATA.hdf5'), 'w') as file:
-            file.create_dataset('input', data=test_input)
-            file.create_dataset('output', data=test_output)
-            file.create_dataset('latent', data=latent_data)
+            file.create_group('data')
+            file['data'].create_dataset('latent', data=latent_value)
+            file['data'].create_dataset('input', data=test_input_data)
+            file['data'].create_dataset('output', data=test_output_data)
+            
+            file.create_group('meta')
+            file['meta'].create_dataset('z_size', data=z_size)
+            file['meta'].create_dataset('pca_size', data=pca_size)
+            file['meta'].create_dataset('bin_size', data=bin_size)
+            file['meta'].create_dataset('pca_scale', data=pca_scale)
+            file['meta'].create_dataset('data_size', data=data_size)
+            file['meta'].create_dataset('epoch_size', data=epoch_size)
+            file['meta'].create_dataset('batch_size', data=batch_size)
+            file['meta'].create_dataset('latent_size', data=latent_size)
+            file['meta'].create_dataset('learning_rate', data=learning_rate)
+            
+            file.create_group('history')
+            file['history'].create_dataset('epoch', data=history.epoch)
+            file['history'].create_dataset('all_loss', data=history.history['all_loss'])
+            file['history'].create_dataset('mean_loss', data=history.history['mean_loss'])
+            file['history'].create_dataset('scatter_loss', data=history.history['scatter_loss'])
+            file['history'].create_dataset('covariance_loss', data=history.history['covariance_loss'])
+            file['history'].create_dataset('divergence_loss', data=history.history['divergence_loss'])
     
     # Duration
     end = time.time()
