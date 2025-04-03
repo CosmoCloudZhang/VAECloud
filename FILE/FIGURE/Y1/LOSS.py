@@ -39,28 +39,33 @@ def main(tag, folder):
         
         all_loss_lens = file['history']['all_loss'][...]
         mean_loss_lens = file['history']['mean_loss'][...]
-        scatter_loss_lens = file['history']['scatter_loss'][...]
+        deviation_loss_lens = file['history']['deviation_loss'][...]
         covariance_loss_lens = file['history']['covariance_loss'][...]
-        divergence_loss_lens = file['history']['divergence_loss'][...]
+        discrepancy_loss_lens = file['history']['discrepancy_loss'][...]
+        regularization_loss_source = file['history']['regularization_loss'][...]
         
         val_all_loss_lens = file['history']['val_all_loss'][...]
         val_mean_loss_lens = file['history']['val_mean_loss'][...]
-        val_scatter_loss_lens = file['history']['val_scatter_loss'][...]
+        val_deviation_loss_lens = file['history']['val_deviation_loss'][...]
         val_covariance_loss_lens = file['history']['val_covariance_loss'][...]
-        val_divergence_loss_lens = file['history']['val_divergence_loss'][...]
+        val_discrepancy_loss_lens = file['history']['val_discrepancy_loss'][...]
+        val_regularization_loss_source = file['history']['val_regularization_loss'][...]
+        
     epoch = numpy.arange(1, epoch_size + 1)
     
     figure, plot = pyplot.subplots(nrows = 1, ncols = 2, figsize = (16, 8))
     
     plot[0].plot(epoch, all_loss_lens, color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot[0].plot(epoch, mean_loss_lens, color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
+    plot[0].plot(epoch, mean_loss_lens, color = 'darkmagenta', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot[0].plot(epoch, scatter_loss_lens, color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
+    plot[0].plot(epoch, deviation_loss_lens, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{deviation}$')
     
-    plot[0].plot(epoch, covariance_loss_lens, color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
+    plot[0].plot(epoch, covariance_loss_lens, color = 'darkgreen', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot[0].plot(epoch, divergence_loss_lens, color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
+    plot[0].plot(epoch, discrepancy_loss_lens, color = 'darkorange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{discrepancy}$')
+    
+    plot[0].plot(epoch, regularization_loss_source, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{regularization}$')
     
     plot[0].set_yscale('log')
     plot[0].set_xscale('linear')
@@ -74,13 +79,15 @@ def main(tag, folder):
     
     plot[1].plot(epoch, val_all_loss_lens, color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot[1].plot(epoch, val_mean_loss_lens, color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
+    plot[1].plot(epoch, val_mean_loss_lens, color = 'darkmagenta', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot[1].plot(epoch, val_scatter_loss_lens, color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
+    plot[1].plot(epoch, val_deviation_loss_lens, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{deviation}$')
     
-    plot[1].plot(epoch, val_covariance_loss_lens, color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
+    plot[1].plot(epoch, val_covariance_loss_lens, color = 'darkgreen', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot[1].plot(epoch, val_divergence_loss_lens, color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
+    plot[1].plot(epoch, val_discrepancy_loss_lens, color = 'darkorange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{discrepancy}$')
+    
+    plot[1].plot(epoch, val_regularization_loss_source, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{regularization}$')
     
     plot[1].set_yscale('log')
     plot[1].set_xscale('linear')
@@ -104,28 +111,33 @@ def main(tag, folder):
         
         all_loss_source = file['history']['all_loss'][...]
         mean_loss_source = file['history']['mean_loss'][...]
-        scatter_loss_source = file['history']['scatter_loss'][...]
+        deviation_loss_source = file['history']['deviation_loss'][...]
         covariance_loss_source = file['history']['covariance_loss'][...]
-        divergence_loss_source = file['history']['divergence_loss'][...]
+        discrepancy_loss_source = file['history']['discrepancy_loss'][...]
+        regularization_loss_source = file['history']['regularization_loss'][...]
         
         val_all_loss_source = file['history']['val_all_loss'][...]
         val_mean_loss_source = file['history']['val_mean_loss'][...]
-        val_scatter_loss_source = file['history']['val_scatter_loss'][...]
+        val_deviation_loss_source = file['history']['val_deviation_loss'][...]
         val_covariance_loss_source = file['history']['val_covariance_loss'][...]
-        val_divergence_loss_source = file['history']['val_divergence_loss'][...]
+        val_discrepancy_loss_source = file['history']['val_discrepancy_loss'][...]
+        val_regularization_loss_source = file['history']['val_regularization_loss'][...]
+        
     epoch = numpy.arange(1, epoch_size + 1)
     
     figure, plot = pyplot.subplots(nrows = 1, ncols = 2, figsize = (16, 8))
     
     plot[0].plot(epoch, all_loss_source, color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot[0].plot(epoch, mean_loss_source, color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
+    plot[0].plot(epoch, mean_loss_source, color = 'darkmagenta', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot[0].plot(epoch, scatter_loss_source, color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
+    plot[0].plot(epoch, deviation_loss_source, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{deviation}$')
     
-    plot[0].plot(epoch, covariance_loss_source, color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
+    plot[0].plot(epoch, covariance_loss_source, color = 'darkgreen', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot[0].plot(epoch, divergence_loss_source, color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
+    plot[0].plot(epoch, discrepancy_loss_source, color = 'darkorange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{discrepancy}$')
+    
+    plot[0].plot(epoch, regularization_loss_source, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{regularization}$')
     
     plot[0].set_yscale('log')
     plot[0].set_xscale('linear')
@@ -139,13 +151,15 @@ def main(tag, folder):
     
     plot[1].plot(epoch, val_all_loss_source, color = 'black', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{all}$')
     
-    plot[1].plot(epoch, val_mean_loss_source, color = 'purple', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
+    plot[1].plot(epoch, val_mean_loss_source, color = 'darkmagenta', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{mean}$')
     
-    plot[1].plot(epoch, val_scatter_loss_source, color = 'blue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{scatter}$')
+    plot[1].plot(epoch, val_deviation_loss_source, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{deviation}$')
     
-    plot[1].plot(epoch, val_covariance_loss_source, color = 'green', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
+    plot[1].plot(epoch, val_covariance_loss_source, color = 'darkgreen', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{covariance}$')
     
-    plot[1].plot(epoch, val_divergence_loss_source, color = 'orange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{divergence}$')
+    plot[1].plot(epoch, val_discrepancy_loss_source, color = 'darkorange', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{discrepancy}$')
+    
+    plot[1].plot(epoch, val_regularization_loss_source, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{regularization}$')
     
     plot[1].set_yscale('log')
     plot[1].set_xscale('linear')

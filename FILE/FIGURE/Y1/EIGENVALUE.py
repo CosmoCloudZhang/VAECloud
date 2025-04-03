@@ -24,21 +24,31 @@ def main(tag, folder):
     # Path
     figure_folder = os.path.join(folder, 'FIGURE/{}/'.format(tag))
     pca_lens_folder = os.path.join(folder, 'LENS/{}/PCA/'.format(tag))
+    vae_lens_folder = os.path.join(folder, 'LENS/{}/VAE/'.format(tag))
     pca_source_folder = os.path.join(folder, 'SOURCE/{}/PCA/'.format(tag))
+    vae_source_folder = os.path.join(folder, 'SOURCE/{}/VAE/'.format(tag))
     os.makedirs(os.path.join(figure_folder, 'EIGENVALUE/'), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(pca_lens_folder, 'DATA.hdf5'), 'r') as file:
-        pca_lens_eigenvalue = file['eigenvalue'][...]
-    pca_lens_sigma = numpy.std(pca_lens_eigenvalue, axis = 0)
-    
     with open(os.path.join(pca_lens_folder, 'MODEL.pkl'), 'rb') as file:
         pca_lens_model = pickle.load(file)
     pca_lens_size = pca_lens_model.n_components_
     
-    with h5py.File(os.path.join(pca_source_folder, 'DATA.hdf5'), 'r') as file:
-        pca_source_eigenvalue = file['eigenvalue'][...]
-    pca_source_sigma = numpy.std(pca_source_eigenvalue, axis = 0)
+    with h5py.File(os.path.join(vae_lens_folder, 'DATA.hdf5'), 'r') as file:
+        input_pca_lens_eigenvalue = file['eigenvalue']['input'][...]
+        output_pca_lens_eigenvalue = file['eigenvalue']['output'][...]
+    
+    input_pca_lens_sigma = numpy.std(input_pca_lens_eigenvalue, axis = 0)
+    output_pca_lens_sigma = numpy.std(output_pca_lens_eigenvalue, axis = 0)
+    vae_lens_sigma = numpy.average([input_pca_lens_sigma, output_pca_lens_sigma], axis = 0)
+    
+    with h5py.File(os.path.join(vae_source_folder, 'DATA.hdf5'), 'r') as file:
+        input_pca_source_eigenvalue = file['eigenvalue']['input'][...]
+        output_pca_source_eigenvalue = file['eigenvalue']['output'][...]
+    
+    input_pca_source_sigma = numpy.std(input_pca_source_eigenvalue, axis = 0)
+    output_pca_source_sigma = numpy.std(output_pca_source_eigenvalue, axis = 0)
+    vae_source_sigma = numpy.average([input_pca_source_sigma, output_pca_source_sigma], axis = 0)
     
     with open(os.path.join(pca_source_folder, 'MODEL.pkl'), 'rb') as file:
         pca_source_model = pickle.load(file)
@@ -55,9 +65,11 @@ def main(tag, folder):
     for n in range(pca_lens_size):
         figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
         
-        plot.hist(pca_lens_eigenvalue[:, n], range = (- 5 * pca_lens_sigma[n], 5 * pca_lens_sigma[n]), bins = 100, density = False, color = 'black', alpha = 0.5)
+        plot.hist(input_pca_lens_eigenvalue[:, n], range = (- 5 * vae_lens_sigma[n], 5 * vae_lens_sigma[n]), bins = 100, density = False, color = 'darkblue', alpha = 0.5)
         
-        plot.set_xlim(- 5 * pca_lens_sigma[n], 5 * pca_lens_sigma[n])
+        plot.hist(output_pca_lens_eigenvalue[:, n], range = (- 5 * vae_lens_sigma[n], 5 * vae_lens_sigma[n]), bins = 100, density = False, color = 'darkred', alpha = 0.5)
+        
+        plot.set_xlim(- 5 * vae_lens_sigma[n], 5 * vae_lens_sigma[n])
         
         figure.savefig(os.path.join(figure_folder, 'EIGENVALUE/FIGURE_LENS{}.pdf'.format(n + 1)), format='pdf', bbox_inches='tight')
         pyplot.close(figure)
@@ -66,9 +78,11 @@ def main(tag, folder):
     for n in range(pca_source_size):
         figure, plot = pyplot.subplots(nrows = 1, ncols = 1, figsize = (12, 6))
         
-        plot.hist(pca_source_eigenvalue[:, n], range = (- 5 * pca_source_sigma[n], 5 * pca_source_sigma[n]), bins = 100, density = False, color = 'black', alpha = 0.5)
+        plot.hist(input_pca_source_eigenvalue[:, n], range = (- 5 * vae_source_sigma[n], 5 * vae_source_sigma[n]), bins = 100, density = False, color = 'darkblue', alpha = 0.5)
         
-        plot.set_xlim(- 5 * pca_source_sigma[n], 5 * pca_source_sigma[n])
+        plot.hist(output_pca_source_eigenvalue[:, n], range = (- 5 * vae_source_sigma[n], 5 * vae_source_sigma[n]), bins = 100, density = False, color = 'darkred', alpha = 0.5)
+        
+        plot.set_xlim(- 5 * vae_source_sigma[n], 5 * vae_source_sigma[n])
         
         figure.savefig(os.path.join(figure_folder, 'EIGENVALUE/FIGURE_SOURCE{}.pdf'.format(n + 1)), format='pdf', bbox_inches='tight')
         pyplot.close(figure)
