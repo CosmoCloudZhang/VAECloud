@@ -28,8 +28,7 @@ def main(tag, folder):
     data_folder = os.path.join(folder, 'DATA/')
     info_folder = os.path.join(folder, 'INFO/')
     value_folder = os.path.join(folder, 'VALUE/')
-    os.makedirs(value_folder, exist_ok = True)
-    os.makedirs(os.path.join(value_folder, '{}/SINGLE/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(value_folder, '{}/'.format(tag)), exist_ok = True)
     
     # Load
     with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
