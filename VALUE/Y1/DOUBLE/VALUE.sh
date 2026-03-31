@@ -7,8 +7,8 @@
 #SBATCH --constraint=cpu
 #SBATCH -o LOG/%x_%j.out
 #SBATCH -J VALUE_Y1_DOUBLE
-#SBATCH --cpus-per-task=32
-#SBATCH --ntasks-per-node=8
+#SBATCH --cpus-per-task=256
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
@@ -30,16 +30,8 @@ export OMP_PLACES=threads
 
 # Initialize the process
 TAG="Y1"
-BASE_PATH="/pscratch/sd/y/yhzhang/SOMZCloud/"
-BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/SOMZCloud/"
+BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
+BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run applications
-LABEL_LIST=("DIR" "STACK" "HYBRID" "TRUTH")
-NAME_LIST=("COPPER" "GOLD" "IRON" "SILVER" "TITANIUM" "ZINC")
-
-for NAME in "${NAME_LIST[@]}"; do
-    for LABEL in "${LABEL_LIST[@]}"; do
-        srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}VALUE/${TAG}/DOUBLE/VALUE.py" --tag=$TAG --name=$NAME --label=$LABEL --folder=$BASE_FOLDER & 
-    done
-done
-wait
+srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}VALUE/${TAG}/DOUBLE/VALUE.py" --tag=$TAG --folder=$BASE_FOLDER

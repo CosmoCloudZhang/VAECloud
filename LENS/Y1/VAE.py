@@ -617,6 +617,12 @@ def main(tag, name, folder):
             file['data'].create_dataset('input', data=test_input_data)
             file['data'].create_dataset('output', data=test_output_data)
             file['data'].create_dataset('latent', data=test_latent_data)
+            
+            file.create_group('value')
+            file['value'].create_dataset('input', data=test_input_value)
+            file['value'].create_dataset('output', data=test_output_value)
+            file['value'].create_dataset('latent_mu', data=test_latent_mu)
+            file['value'].create_dataset('latent_logvar', data=test_latent_logvar)
     
     # Duration
     end = time.time()

@@ -9,14 +9,12 @@ import argparse
 from itertools import product
 
 
-def main(tag, name, label, folder):
+def main(tag, folder):
     '''
     Calculate the position-shape angular power spectra
     
     Arguments:
         tag (str): The tag of the configuration
-        name (str): The name of the power spectra
-        label (str): The label of the configuration
         folder (str): The base folder of the dataset
     
     Returns:
@@ -24,19 +22,17 @@ def main(tag, name, label, folder):
     '''
     # Start
     start = time.time()
-    print('Name: {}, Label: {}'.format(name, label))
+    print('Tag: {}'.format(tag))
     
     # Path
     cell_folder = os.path.join(folder, 'CELL/')
     info_folder = os.path.join(folder, 'INFO/')
-    calibrate_folder = os.path.join(folder, 'CALIBRATE/')
+    data_folder = os.path.join(folder, 'DATA/')
     os.makedirs(os.path.join(cell_folder, '{}/'.format(tag)), exist_ok = True)
     os.makedirs(os.path.join(cell_folder, '{}/TE/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(cell_folder, '{}/TE/SHIFT/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(cell_folder, '{}/TE/SHIFT/{}/'.format(tag, name)), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(calibrate_folder, '{}/SHIFT/{}/{}.hdf5'.format(tag, name, label)), 'r') as file:
+    with h5py.File(os.path.join(data_folder, '{}/SHIFT.hdf5'.format(tag)), 'r') as file:
         meta = {key: file['meta'][key][...] for key in file['meta'].keys()}
         
         data_lens = file['lens']['data'][...]
@@ -45,10 +41,18 @@ def main(tag, name, label, folder):
         data_source = file['source']['data'][...]
         average_source = file['source']['average'][...]
     
-    # Size
+    # Meta
     z_grid = meta['z_grid']
-    data_size, bin_lens_size, z_size = data_lens.shape
-    data_size, bin_source_size, z_size = data_source.shape
+    data_size = int(meta['data_size'][...])
+    grid_size = int(meta['grid_size'][...])
+    bin_lens_size = int(meta['bin_lens_size'][...])
+    bin_source_size = int(meta['bin_source_size'][...])
+    
+    # Sample
+    seed = 1
+    numpy.random.seed(seed)
+    sample_size = int(data_size * 0.2 * 0.5)
+    sample_index = numpy.random.choice(data_size, size=sample_size, replace=False)
     
     # Cosmology
     with open(os.path.join(info_folder, 'COSMOLOGY.json'), 'r') as file:
@@ -100,8 +104,8 @@ def main(tag, name, label, folder):
     # Cell Average
     cell_average = numpy.zeros((bin_lens_size, bin_source_size, ell_size))
     for (i, j) in product(range(bin_lens_size), range(bin_source_size)):
-        tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=[z_grid, average_lens[i, :]], bias=[z_grid, galaxy_bias], mag_bias=[z_grid, numpy.ones(z_size) * magnification_bias[i]], has_rsd=False, n_samples=z_size)
-        tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=[z_grid, average_source[j, :]], has_shear=True, ia_bias=[z_grid, alignment_bias], use_A_ia=False, n_samples=z_size)
+        tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=[z_grid, average_lens[i, :]], bias=[z_grid, galaxy_bias], mag_bias=[z_grid, numpy.ones(grid_size + 1) * magnification_bias[i]], has_rsd=False, n_samples=grid_size + 1)
+        tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=[z_grid, average_source[j, :]], has_shear=True, ia_bias=[z_grid, alignment_bias], use_A_ia=False, n_samples=grid_size + 1)
         cell_grid = pyccl.cells.angular_cl(cosmo=cosmology, tracer1=tracer1, tracer2=tracer2, ell=ell_grid, p_of_k_a='delta_matter:delta_matter', l_limber=-1, limber_max_error=0.01, limber_integration_method='spline', p_of_k_a_lin='delta_matter:delta_matter', return_meta=False)
         
         cell_value = scipy.interpolate.CubicSpline(x=numpy.log(ell_grid), y=ell_grid * cell_grid, bc_type='natural', extrapolate=True)
@@ -109,19 +113,19 @@ def main(tag, name, label, folder):
             cell_average[i, j, k] = cell_value.integrate(numpy.log(ell_grid[k]), numpy.log(ell_grid[k + 1])) / (ell_grid[k + 1] - ell_grid[k])
     
     # Cell Data
-    cell_data = numpy.zeros((data_size, bin_lens_size, bin_source_size, ell_size))
-    for n in range(data_size):
+    cell_data = numpy.zeros((sample_size, bin_lens_size, bin_source_size, ell_size))
+    for m, n in enumerate(sample_index):
         for (i, j) in product(range(bin_lens_size), range(bin_source_size)):
-            tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=[z_grid, data_lens[n, i, :]], bias=[z_grid, galaxy_bias], mag_bias=[z_grid, numpy.ones(z_size) * magnification_bias[i]], has_rsd=False, n_samples=z_size)
-            tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=[z_grid, data_source[n, j, :]], has_shear=True, ia_bias=[z_grid, alignment_bias], use_A_ia=False, n_samples=z_size)
+            tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=[z_grid, data_lens[n, i, :]], bias=[z_grid, galaxy_bias], mag_bias=[z_grid, numpy.ones(grid_size + 1) * magnification_bias[i]], has_rsd=False, n_samples=grid_size + 1)
+            tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=[z_grid, data_source[n, j, :]], has_shear=True, ia_bias=[z_grid, alignment_bias], use_A_ia=False, n_samples=grid_size + 1)
             cell_grid = pyccl.cells.angular_cl(cosmo=cosmology, tracer1=tracer1, tracer2=tracer2, ell=ell_grid, p_of_k_a='delta_matter:delta_matter', l_limber=-1, limber_max_error=0.01, limber_integration_method='spline', p_of_k_a_lin='delta_matter:delta_matter', return_meta=False)
             
             cell_value = scipy.interpolate.CubicSpline(x=numpy.log(ell_grid), y=ell_grid * cell_grid, bc_type='natural', extrapolate=True)
             for k in range(ell_size):
-                cell_data[n, i, j, k] = cell_value.integrate(numpy.log(ell_grid[k]), numpy.log(ell_grid[k + 1])) / (ell_grid[k + 1] - ell_grid[k])
+                cell_data[m, i, j, k] = cell_value.integrate(numpy.log(ell_grid[k]), numpy.log(ell_grid[k + 1])) / (ell_grid[k + 1] - ell_grid[k])
     
     # Save
-    with h5py.File(os.path.join(cell_folder, '{}/TE/SHIFT/{}/{}.hdf5'.format(tag, name, label)), 'w') as file:
+    with h5py.File(os.path.join(cell_folder, '{}/TE/SHIFT.hdf5'.format(tag)), 'w') as file:
         file.create_dataset('data', data = cell_data)
         file.create_dataset('average', data = cell_average)
     
@@ -138,15 +142,11 @@ if __name__ == '__main__':
     # Input
     PARSE = argparse.ArgumentParser(description='Cell TE Shift')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
-    PARSE.add_argument('--name', type=str, required=True, help='The name of the power spectra')
-    PARSE.add_argument('--label', type=str, required=True, help='The label of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The base folder of the dataset')
     
     # Parse
     TAG = PARSE.parse_args().tag
-    NAME = PARSE.parse_args().name
-    LABEL = PARSE.parse_args().label
     FOLDER = PARSE.parse_args().folder
     
     # Output
-    OUTPUT = main(TAG, NAME, LABEL, FOLDER)
+    OUTPUT = main(TAG, FOLDER)

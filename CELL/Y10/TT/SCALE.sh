@@ -2,13 +2,13 @@
 #SBATCH -A m1727
 #SBATCH --nodes=1
 #SBATCH -q regular
-#SBATCH --time=48:00:00
+#SBATCH --time=04:00:00
 #SBATCH --mail-type=END
 #SBATCH --constraint=cpu
 #SBATCH -o LOG/%x_%j.out
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=256
+#SBATCH --ntasks-per-node=1
 #SBATCH -J CELL_Y10_TT_SCALE
-#SBATCH --ntasks-per-node=32
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
@@ -30,16 +30,9 @@ export OMP_PLACES=threads
 
 # Initialize the process
 TAG="Y10"
-BASE_PATH="/pscratch/sd/y/yhzhang/SOMZCloud/"
-BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/SOMZCloud/"
+BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
+BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run applications
-LABEL_LIST=("DIR"  "STACK" "HYBRID" "TRUTH")
-NAME_LIST=("COPPER" "GOLD" "IRON" "SILVER" "TITANIUM" "ZINC")
-
-for NAME in "${NAME_LIST[@]}"; do
-    for LABEL in "${LABEL_LIST[@]}"; do
-        srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}CELL/${TAG}/TT/SCALE.py" --tag=$TAG --name=$NAME --label=$LABEL --folder=$BASE_FOLDER & 
-    done
-done
+srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}CELL/${TAG}/TT/SCALE.py" --tag=$TAG --folder=$BASE_FOLDER & 
 wait
