@@ -562,8 +562,10 @@ def main(tag, name, folder):
     theta = (10.0, 100.0, 500.0, 1000.0)
     
     # Split
-    train_value, evaluation_value = train_test_split(input_value, test_size=0.2)
-    validation_value, test_value = train_test_split(evaluation_value, test_size=0.5)
+    selection_size = 0.5
+    evaluation_size = 0.2
+    train_value, evaluation_value = train_test_split(input_value, test_size=evaluation_size)
+    validation_value, test_value = train_test_split(evaluation_value, test_size=selection_size)
     
     # Device
     devices = tensorflow.config.experimental.list_physical_devices('GPU')
@@ -591,8 +593,8 @@ def main(tag, name, folder):
         test_latent_data = vae_model.sampler(test_latent_mu, test_latent_logvar)
         
         # Save
-        vae_model.save(os.path.join(output_folder, '{}/VAE.hdf5'.format(tag)))
-        with h5py.File(os.path.join(output_folder, '{}/DATA.hdf5'.format(tag)), 'w') as file:
+        vae_model.save(os.path.join(output_folder, '{}/VAE/'.format(tag)))
+        with h5py.File(os.path.join(output_folder, '{}/VAE.hdf5'.format(tag)), 'w') as file:
             file.create_group('meta')
             file['meta'].create_dataset('theta', data=theta)
             file['meta'].create_dataset('z_size', data=z_size)
@@ -604,6 +606,8 @@ def main(tag, name, folder):
             file['meta'].create_dataset('batch_size', data=batch_size)
             file['meta'].create_dataset('latent_size', data=latent_size)
             file['meta'].create_dataset('learning_rate', data=learning_rate)
+            file['meta'].create_dataset('selection_size', data=selection_size)
+            file['meta'].create_dataset('evaluation_size', data=evaluation_size)
             
             file.create_group('history')
             for key, value in history.history.items():
