@@ -25,7 +25,7 @@ def plot_covariance(bin_size, map_size, covariance):
         for n in range(bin_size):
             
             map_covariance = covariance[n * map_size: (n + 1) * map_size, m * map_size: (m + 1) * map_size]
-            image = plot[n, m].imshow(map_covariance, norm = norm, cmap = 'seismic', origin = 'upper')
+            image = plot[n, m].imshow(map_covariance, norm = norm, cmap = 'seismic', origin = 'upper', rasterized = True)
             
             plot[n, m].set_xticks([])
             plot[n, m].set_yticks([])
@@ -37,14 +37,13 @@ def plot_covariance(bin_size, map_size, covariance):
     return figure
 
 
-def main(tag, folder, directory):
+def main(tag, folder):
     '''
     Plot the loss of the VAE process
     
     Arguments:
         tag (str): The tag of the configuration
         folder (str): The folder containing the datasets
-        directory (str): The directory containing the datasets
     
     Returns:
         duration (float): The duration of the process
@@ -53,45 +52,50 @@ def main(tag, folder, directory):
     start = time.time()
     
     # Path
-    model_directory = os.path.join(directory, 'MODEL/')
-    figure_folder = os.path.join(folder, 'FIGURE/{}/'.format(tag))
-    vae_lens_folder = os.path.join(folder, 'LENS/{}/VAE/'.format(tag))
-    vae_source_folder = os.path.join(folder, 'SOURCE/{}/VAE/'.format(tag))
-    os.makedirs(os.path.join(figure_folder, 'COVARIANCE/'), exist_ok = True)
+    data_folder = os.path.join(folder, 'DATA/')
+    plot_folder = os.path.join(folder, 'PLOT/')
+    lens_folder = os.path.join(folder, 'LENS/')
+    source_folder = os.path.join(folder, 'SOURCE/')
+    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, '{}/COVARIANCE/'.format(tag)), exist_ok = True)
+    
+    # Correct
+    with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
+        z1 = file['meta']['z1'][...]
+        z2 = file['meta']['z2'][...]
+        
+        bin_lens = file['meta']['bin_lens'][...]
+        bin_lens_size = int(file['meta']['bin_lens_size'][...])
+        
+        bin_source = file['meta']['bin_source'][...]
+        bin_source_size = int(file['meta']['bin_source_size'][...])
     
     # Lens
-    with h5py.File(os.path.join(vae_lens_folder, 'DATA.hdf5'), 'r') as file:
-        z_size = int(file['meta']['z_size'][...])
-        bin_lens_size = int(file['meta']['bin_size'][...])
-        data_lens_size = int(file['meta']['data_size'][...]) // 10
-        
+    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         input_data_lens = file['data']['input'][...]
         output_data_lens = file['data']['output'][...]
-    
-    # Source
-    with h5py.File(os.path.join(vae_source_folder, 'DATA.hdf5'), 'r') as file:
         
         z_size = int(file['meta']['z_size'][...])
-        bin_source_size = int(file['meta']['bin_size'][...])
-        data_source_size = int(file['meta']['data_size'][...]) // 10
-        
+        selection_size = file['meta']['selection_size'][...]
+        evaluation_size = file['meta']['evaluation_size'][...]
+        data_lens_size = int(file['meta']['data_size'][...] * selection_size * evaluation_size)
+    
+    # Source
+    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         input_data_source = file['data']['input'][...]
         output_data_source = file['data']['output'][...]
+        
+        z_size = int(file['meta']['z_size'][...])
+        selection_size = file['meta']['selection_size'][...]
+        evaluation_size = file['meta']['evaluation_size'][...]
+        data_source_size = int(file['meta']['data_size'][...] * selection_size * evaluation_size)
     
-    # Redshift
-    z1 = 0.0
-    z2 = 3.0
-    z_delta = (z2 - z1) / (z_size - 1)
-    
-    # Bin
-    with h5py.File(os.path.join(model_directory, '{}/SELECT/DATA0.hdf5'.format(tag)), 'r') as file:
-        bin_lens = file['bin_lens'][...]
-        bin_source = file['bin_source'][...]
-    
-    # Index
+    # Size
     map_lens_size = 40
     map_source_size = 100
+    z_delta = (z2 - z1) / (z_size - 1)
     
+    # Index
     index_lower_lens = numpy.maximum(0, numpy.array(numpy.round(bin_lens[:-1] / z_delta, decimals=0), dtype='int32') - map_lens_size // 4)
     index_upper_lens = index_lower_lens + map_lens_size
     
@@ -126,19 +130,19 @@ def main(tag, folder, directory):
     
     # Plot
     figure = plot_covariance(bin_lens_size, map_lens_size, input_covariance_lens)
-    figure.savefig(os.path.join(figure_folder, 'COVARIANCE/FIGURE_INPUT_LENS.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_INPUT_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_lens_size, map_lens_size, output_covariance_lens)
-    figure.savefig(os.path.join(figure_folder, 'COVARIANCE/FIGURE_OUTPUT_LENS.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_OUTPUT_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_source_size, map_source_size, input_covariance_source)
-    figure.savefig(os.path.join(figure_folder, 'COVARIANCE/FIGURE_INPUT_SOURCE.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_INPUT_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_source_size, map_source_size, output_covariance_source)
-    figure.savefig(os.path.join(figure_folder, 'COVARIANCE/FIGURE_OUTPUT_SOURCE.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_OUTPUT_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
@@ -151,15 +155,13 @@ def main(tag, folder, directory):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='Figure Covariance')
+    PARSE = argparse.ArgumentParser(description='Plot Covariance')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
-    PARSE.add_argument('--directory', type=str, required=True, help='The directory containing the datasets')
     
     # Parse
     TAG = PARSE.parse_args().tag
     FOLDER = PARSE.parse_args().folder
-    DIRECTORY = PARSE.parse_args().directory
     
     # Output
-    OUTPUT = main(TAG, FOLDER, DIRECTORY)
+    OUTPUT = main(TAG, FOLDER)

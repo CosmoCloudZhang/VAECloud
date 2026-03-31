@@ -23,32 +23,28 @@ def main(tag, folder):
     start = time.time()
     
     # Path
-    figure_folder = os.path.join(folder, 'FIGURE/{}/'.format(tag))
-    
-    pca_lens_folder = os.path.join(folder, 'LENS/{}/PCA/'.format(tag))
-    vae_lens_folder = os.path.join(folder, 'LENS/{}/VAE/'.format(tag))
-    
-    pca_source_folder = os.path.join(folder, 'SOURCE/{}/PCA/'.format(tag))
-    vae_source_folder = os.path.join(folder, 'SOURCE/{}/VAE/'.format(tag))
-    
-    os.makedirs(os.path.join(figure_folder, 'VARIABLE/'), exist_ok = True)
+    plot_folder = os.path.join(folder, 'PLOT/')
+    lens_folder = os.path.join(folder, 'LENS/')
+    source_folder = os.path.join(folder, 'SOURCE/')
+    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, '{}/VARIABLE/'.format(tag)), exist_ok = True)
     
     # Lens
-    vae_lens_model = keras.models.load_model(os.path.join(vae_lens_folder, 'MODEL'))
-    with open(os.path.join(pca_lens_folder, 'MODEL.pkl'), 'rb') as file:
+    vae_lens_model = keras.models.load_model(os.path.join(lens_folder, '{}/VAE/'.format(tag)))
+    with open(os.path.join(lens_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
         pca_lens_model = pickle.load(file)
     
-    with h5py.File(os.path.join(vae_lens_folder, 'DATA.hdf5'), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         z_size = int(file['meta']['z_size'][...])
         bin_lens_size = int(file['meta']['bin_size'][...])
         latent_lens_size = int(file['meta']['latent_size'][...])
     
     # Source
-    vae_source_model = keras.models.load_model(os.path.join(vae_source_folder, 'MODEL'))
-    with open(os.path.join(pca_source_folder, 'MODEL.pkl'), 'rb') as file:
+    vae_source_model = keras.models.load_model(os.path.join(source_folder, '{}/VAE/'.format(tag)))
+    with open(os.path.join(source_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
         pca_source_model = pickle.load(file)
     
-    with h5py.File(os.path.join(vae_source_folder, 'DATA.hdf5'), 'r') as file:
+    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         z_size = int(file['meta']['z_size'][...])
         bin_source_size = int(file['meta']['bin_size'][...])
         latent_source_size = int(file['meta']['latent_size'][...])
@@ -62,8 +58,13 @@ def main(tag, folder):
     latent1 = -5.0
     latent2 = +5.0
     sample_size = 10
-    latent_point = numpy.zeros(sample_size + 1)
     latent_sample = numpy.linspace(latent1, latent2, sample_size + 1)
+    
+    latent_data_lens = numpy.stack([latent_sample] * latent_lens_size, axis = 1)
+    latent_data_source = numpy.stack([latent_sample] * latent_source_size, axis = 1)
+    
+    data_lens = numpy.reshape(pca_lens_model.inverse_transform((vae_lens_model.decoder(latent_data_lens))), (-1, bin_lens_size, z_size))
+    data_source = numpy.reshape(pca_source_model.inverse_transform((vae_source_model.decoder(latent_data_source))), (-1, bin_source_size, z_size))
     
     # Figure
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
@@ -73,77 +74,51 @@ def main(tag, folder):
     pyplot.rcParams['font.size'] = 20
     
     # Lens
-    figure, plot = pyplot.subplots(nrows = latent_lens_size, ncols = 1, figsize = (15, 5 * latent_lens_size))
+    figure, plot = pyplot.subplots(nrows=1, ncols=1, figsize=(12, 6))
     
-    for i in range(latent_lens_size):
-        
-        latent_data = numpy.zeros((sample_size + 1, latent_lens_size))
-        for j in range(latent_lens_size):
-            if j == i:
-                latent_data[:, j] = latent_sample
-            else:
-                latent_data[:, j] = latent_point
-        data_lens = numpy.reshape(pca_lens_model.inverse_transform((vae_lens_model.decoder(latent_data))), (-1, bin_lens_size, z_size))
-        
-        norm = colors.Normalize(vmin=latent1, vmax=latent2)
-        scalar_mappable = cm.ScalarMappable(cmap=cm.Spectral, norm=norm)
-        color_list = cm.Spectral(numpy.linspace(0.0, 1.0, sample_size + 1))
-        
-        for n in range(sample_size + 1):
-            for m in range(bin_lens_size):
-                plot[i].plot(z_grid, data_lens[n, m, :], color = color_list[n], linewidth = 1.0)
-        
-        plot[i].set_xlim(0.0, 1.6)
-        plot[i].set_ylim(0.0, 8.0)
-        
-        plot[i].set_xlabel(r'$z$')
-        plot[i].set_ylabel(r'$\phi^m (z)$')
-        
-        plot[i].yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 8.0, 1.0)))
-        if i < latent_lens_size - 1:
-            plot[i].set_xticklabels([])
-        
-        figure.colorbar(mappable=scalar_mappable, ax=plot[i], orientation='vertical', label=r'$\xi_{}$'.format(i + 1), shrink=0.8)
+    norm = colors.Normalize(vmin=latent1, vmax=latent2)
+    scalar_mappable = cm.ScalarMappable(cmap=cm.plasma_r, norm=norm)
+    color_list = cm.plasma_r(numpy.linspace(0.0, 1.0, sample_size + 1))
+    
+    for n in range(sample_size + 1):
+        for m in range(bin_lens_size):
+            plot.plot(z_grid, data_lens[n, m, :], color = color_list[n], linewidth = 1.0, rasterized = True)
+    
+    plot.set_xlim(0.0, 1.4)
+    plot.set_ylim(0.0, 12.0)
+    
+    plot.set_xlabel(r'$z$')
+    plot.set_ylabel(r'$\phi^m (z)$')
+    plot.yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 12.0, 2.0)))
+    
+    figure.colorbar(mappable=scalar_mappable, ax=plot, orientation='vertical', label=r'$\xi$', shrink=0.9)
     figure.subplots_adjust(wspace = 0.05, hspace = 0.00)
     
-    figure.savefig(os.path.join(figure_folder, 'VARIABLE/FIGURE_LENS.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/VARIABLE/FIGURE_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Source
-    figure, plot = pyplot.subplots(nrows = latent_source_size, ncols = 1, figsize = (15, 5 * latent_source_size))
+    figure, plot = pyplot.subplots(nrows=1, ncols=1, figsize=(12, 6))
     
-    for i in range(latent_source_size):
-        
-        latent_data = numpy.zeros((sample_size + 1, latent_source_size))
-        for j in range(latent_source_size):
-            if j == i:
-                latent_data[:, j] = latent_sample
-            else:
-                latent_data[:, j] = latent_point
-        data_source = numpy.reshape(pca_source_model.inverse_transform((vae_source_model.decoder(latent_data))), (-1, bin_source_size, z_size))
-        
-        norm = colors.Normalize(vmin=latent1, vmax=latent2)
-        scalar_mappable = cm.ScalarMappable(cmap=cm.Spectral, norm=norm)
-        color_list = cm.Spectral(numpy.linspace(0.0, 1.0, sample_size + 1))
-        
-        for n in range(sample_size + 1):
-            for m in range(bin_source_size):
-                plot[i].plot(z_grid, data_source[n, m, :], color = color_list[n], linewidth = 1.0)
-        
-        plot[i].set_xlim(0.0, 1.6)
-        plot[i].set_ylim(0.0, 8.0)
-        
-        plot[i].set_xlabel(r'$z$')
-        plot[i].set_ylabel(r'$\phi^m (z)$')
-        
-        plot[i].yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 8.0, 1.0)))
-        if i < latent_source_size - 1:
-            plot[i].set_xticklabels([])
-        
-        figure.colorbar(mappable=scalar_mappable, ax=plot[i], orientation='vertical', label=r'$\xi_{}$'.format(i + 1), shrink=0.8)
+    norm = colors.Normalize(vmin=latent1, vmax=latent2)
+    scalar_mappable = cm.ScalarMappable(cmap=cm.plasma_r, norm=norm)
+    color_list = cm.plasma_r(numpy.linspace(0.0, 1.0, sample_size + 1))
+    
+    for n in range(sample_size + 1):
+        for m in range(bin_source_size):
+            plot.plot(z_grid, data_source[n, m, :], color = color_list[n], linewidth = 1.0, rasterized = True)
+    
+    plot.set_xlim(0.0, 2.1)
+    plot.set_ylim(0.0, 6.0)
+    
+    plot.set_xlabel(r'$z$')
+    plot.set_ylabel(r'$\phi^m (z)$')
+    plot.yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 6.0, 1.0)))
+    
+    figure.colorbar(mappable=scalar_mappable, ax=plot, orientation='vertical', label=r'$\xi$', shrink=0.9)
     figure.subplots_adjust(wspace = 0.05, hspace = 0.00)
     
-    figure.savefig(os.path.join(figure_folder, 'VARIABLE/FIGURE_SOURCE.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/VARIABLE/FIGURE_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
@@ -156,7 +131,7 @@ def main(tag, folder):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='Figure Variable')
+    PARSE = argparse.ArgumentParser(description='Plot Variable')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
     

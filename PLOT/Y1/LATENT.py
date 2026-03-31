@@ -22,17 +22,18 @@ def main(tag, folder):
     start = time.time()
     
     # Path
-    figure_folder = os.path.join(folder, 'FIGURE/{}/'.format(tag))
-    vae_lens_folder = os.path.join(folder, 'LENS/{}/VAE/'.format(tag))
-    vae_source_folder = os.path.join(folder, 'SOURCE/{}/VAE/'.format(tag))
-    os.makedirs(os.path.join(figure_folder, 'LATENT/'), exist_ok = True)
+    plot_folder = os.path.join(folder, 'PLOT/')
+    lens_folder = os.path.join(folder, 'LENS/')
+    source_folder = os.path.join(folder, 'SOURCE/')
+    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, '{}/LATENT/'.format(tag)), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(vae_lens_folder, 'DATA.hdf5'), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         latent_lens = file['data']['latent'][...]
         latent_lens_size = int(file['meta']['latent_size'][...])
     
-    with h5py.File(os.path.join(vae_source_folder, 'DATA.hdf5'), 'r') as file:
+    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
         latent_source = file['data']['latent'][...]
         latent_source_size = int(file['meta']['latent_size'][...])
     
@@ -56,7 +57,7 @@ def main(tag, folder):
         labels=[r'$\xi_{}$'.format(k + 1) for k in range(latent_lens_size)]
     )
     
-    figure.savefig(os.path.join(figure_folder, 'LATENT/FIGURE_LENS.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/LATENT/FIGURE_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Source
@@ -72,7 +73,7 @@ def main(tag, folder):
         labels=[r'$\xi_{}$'.format(k + 1) for k in range(latent_source_size)]
     )
     
-    figure.savefig(os.path.join(figure_folder, 'LATENT/FIGURE_SOURCE.pdf'), format='pdf', bbox_inches='tight')
+    figure.savefig(os.path.join(plot_folder, '{}/LATENT/FIGURE_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
@@ -85,7 +86,7 @@ def main(tag, folder):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='Figure Latent')
+    PARSE = argparse.ArgumentParser(description='Plot Latent')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
     

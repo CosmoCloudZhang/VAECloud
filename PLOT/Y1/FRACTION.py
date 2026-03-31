@@ -21,19 +21,20 @@ def main(tag, folder):
     start = time.time()
     
     # Path
-    figure_folder = os.path.join(folder, 'FIGURE/{}/'.format(tag))
-    pca_lens_folder = os.path.join(folder, 'LENS/{}/PCA/'.format(tag))
-    pca_source_folder = os.path.join(folder, 'SOURCE/{}/PCA/'.format(tag))
-    os.makedirs(os.path.join(figure_folder, 'FRACTION/'), exist_ok = True)
+    plot_folder = os.path.join(folder, 'PLOT/')
+    lens_folder = os.path.join(folder, 'LENS/')
+    source_folder = os.path.join(folder, 'SOURCE/')
+    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, '{}/FRACTION/'.format(tag)), exist_ok = True)
     
     # Load
-    with open(os.path.join(pca_lens_folder, 'MODEL.pkl'), 'rb') as file:
+    with open(os.path.join(lens_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
         pca_lens_model = pickle.load(file)
     pca_lens_size = pca_lens_model.n_components_
     pca_lens_indices = numpy.arange(1, pca_lens_size + 1)
     pca_lens_fraction = pca_lens_model.explained_variance_ratio_
     
-    with open(os.path.join(pca_source_folder, 'MODEL.pkl'), 'rb') as file:
+    with open(os.path.join(source_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
         pca_source_model = pickle.load(file)
     pca_source_size = pca_source_model.n_components_
     pca_source_indices = numpy.arange(1, pca_source_size + 1)
@@ -49,9 +50,9 @@ def main(tag, folder):
     # Figure
     figure, plot = pyplot.subplots(nrows = 2, ncols = 1, figsize = (10, 10))
     
-    plot[0].plot(pca_lens_indices, pca_lens_fraction, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{Lens}$')
+    plot[0].plot(pca_lens_indices, pca_lens_fraction, color = 'darkblue', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{Lens}$', rasterized = True)
     
-    plot[0].plot(pca_source_indices, pca_source_fraction, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{Source}$')
+    plot[0].plot(pca_source_indices, pca_source_fraction, color = 'darkred', linestyle = '-', linewidth = 2.5, label = r'$\mathrm{Source}$', rasterized = True)
     
     plot[0].set_yscale('log')
     plot[0].set_xticklabels([])
@@ -66,9 +67,9 @@ def main(tag, folder):
     pca_lens_cumulative = numpy.array([pca_lens_fraction[:n + 1].sum() for n in range(pca_lens_size)])
     pca_source_cumulative = numpy.array([pca_source_fraction[:n + 1].sum() for n in range(pca_source_size)])
     
-    plot[1].plot(pca_lens_indices, pca_lens_cumulative, color = 'darkblue', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(pca_lens_indices, pca_lens_cumulative, color = 'darkblue', linestyle = '-', linewidth = 2.5, rasterized = True)
     
-    plot[1].plot(pca_source_indices, pca_source_cumulative, color = 'darkred', linestyle = '-', linewidth = 2.5)
+    plot[1].plot(pca_source_indices, pca_source_cumulative, color = 'darkred', linestyle = '-', linewidth = 2.5, rasterized = True)
     
     plot[1].set_ylim(0, 1)
     plot[1].set_xlim(1, pca_lens_size)
@@ -78,7 +79,7 @@ def main(tag, folder):
     plot[1].set_ylabel(r'$\sum_{i}^{n} f_\mathrm{\sigma^2}(i)$')
     
     figure.subplots_adjust(hspace = 0.0, wspace = 0.0)
-    figure.savefig(os.path.join(figure_folder, 'FRACTION/FIGURE.pdf'), format = 'pdf', bbox_inches = 'tight')
+    figure.savefig(os.path.join(plot_folder, '{}/FRACTION/FIGURE.pdf'.format(tag)), format = 'pdf', bbox_inches = 'tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
@@ -91,7 +92,7 @@ def main(tag, folder):
 
 if __name__ == '__main__':
     # Input
-    PARSE = argparse.ArgumentParser(description='Figure Fraction')
+    PARSE = argparse.ArgumentParser(description='Plot Fraction')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
     
