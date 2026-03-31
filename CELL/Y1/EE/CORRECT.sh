@@ -28,7 +28,7 @@ export HDF5_USE_FILE_LOCKING=FALSE
 export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
-# Initialize the proceEE
+# Initialize the process
 TAG="Y1"
 BASE_PATH="/pscratch/sd/y/yhzhang/SOMZCloud/"
 BASE_FOLDER="/global/cfs/cdirs/lEEt/groups/MCP/CosmoCloud/SOMZCloud/"
