@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A m1727
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH -q regular
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=END
@@ -21,17 +21,10 @@ module load cray-hdf5-parallel
 source $HOME/.bashrc
 conda activate $CosmoENV
 
-# Set environment
-export NUMEXPR_MAX_THREADS=$SLURM_CPUS_PER_TASK
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-export HDF5_USE_FILE_LOCKING=FALSE
-export OMP_PROC_BIND=spread
-export OMP_PLACES=threads
-
 # Initialize the process
 TAG="Y10"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
 BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run applications
-srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}VALUE/${TAG}/TRIPLE/VALUE.py" --tag=$TAG --folder=$BASE_FOLDER
+python -u "${BASE_PATH}VALUE/${TAG}/TRIPLE/VALUE.py" --tag=$TAG --folder=$BASE_FOLDER
