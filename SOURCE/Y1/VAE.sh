@@ -7,14 +7,15 @@
 #SBATCH --constraint=gpu
 #SBATCH -o LOG/%x_%j.out
 #SBATCH -J SOURCE_Y1_VAE
+#SBATCH --gpus-per-task=4
 #SBATCH --cpus-per-task=128
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-user=YunHao.Zhang@ed.ac.uk
 
 # Load modules
-module load tensorflow
+module load cray-mpich
 module load PrgEnv-gnu
-module load cray-mpich/8.1.30
+module load tensorflow
 module load cray-hdf5-parallel
 
 # Initialize the process
@@ -24,4 +25,4 @@ BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
 BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
 # Run the application
-python -u "${BASE_PATH}/FILE/${NAME}/${TAG}/VAE.py" --tag=$TAG --name=$NAME --folder=$BASE_FOLDER
+python -u "${BASE_PATH}/${NAME}/${TAG}/VAE.py" --tag=$TAG --name=$NAME --folder=$BASE_FOLDER

@@ -463,8 +463,8 @@ class VAE(Model):
             discrepancy_loss = self.discrepancy_loss(input_value, output_value)
             regularization_loss = self.regularization_loss(latent_mu, latent_logvar)
             
-            alpha, beta, gamma, kappa = self.theta
-            all_loss = mean_loss + alpha * deviation_loss + beta * covariance_loss + gamma * discrepancy_loss + kappa * regularization_loss
+            alpha, beta, tau, nu = self.theta
+            all_loss = mean_loss + alpha * deviation_loss + beta * covariance_loss + tau * discrepancy_loss + nu * regularization_loss
             
             gradients = tape.gradient(all_loss, self.trainable_weights)
             self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
@@ -500,8 +500,8 @@ class VAE(Model):
         discrepancy_loss = self.discrepancy_loss(latent_mu, latent_logvar)
         regularization_loss = self.regularization_loss(latent_mu, latent_logvar)
         
-        alpha, beta, gamma, kappa = self.theta
-        all_loss = mean_loss + alpha * deviation_loss + beta * covariance_loss + gamma * discrepancy_loss + kappa * regularization_loss
+        alpha, beta, tau, nu = self.theta
+        all_loss = mean_loss + alpha * deviation_loss + beta * covariance_loss + tau * discrepancy_loss + nu * regularization_loss
         
         self.all_loss_tracker.update_state(all_loss)
         self.mean_loss_tracker.update_state(mean_loss)
@@ -528,11 +528,11 @@ def main(tag, name, folder):
     # Start
     start = time.time()
     
-    # Path
-    pca_folder = os.path.join(folder, '{}/{}/PCA/'.format(name, tag))
-    vae_folder = os.path.join(folder, '{}/{}/VAE/'.format(name, tag))
+    # Folder
+    output_folder = os.path.join(folder, '{}/'.format(name))
     
-    os.makedirs(vae_folder, exist_ok = True)
+    os.makedirs(output_folder, exist_ok = True)
+    os.makedirs(os.path.join(output_folder, '{}/'.format(tag)), exist_ok = True)
     
     # Seed
     seed = 1
@@ -541,11 +541,11 @@ def main(tag, name, folder):
     tensorflow.random.set_seed(seed)
     
     # Load 
-    with open(os.path.join(pca_folder, 'MODEL.pkl'), 'rb') as file:
+    with open(os.path.join(output_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
         pca_model = pickle.load(file)
     pca_size = pca_model.n_components_
     
-    with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'r') as file:
+    with h5py.File(os.path.join(output_folder, '{}/PCA.hdf5'.format(tag)), 'r') as file:
         input_data = file['input'][...]
         pca_eigenvalue = file['eigenvalue'][...]
     data_size, bin_size, z_size = input_data.shape
@@ -589,18 +589,10 @@ def main(tag, name, folder):
         # Latent
         test_latent_mu, test_latent_logvar = vae_model.encoder(test_value)
         test_latent_data = vae_model.sampler(test_latent_mu, test_latent_logvar)
+        
         # Save
-        vae_model.save(os.path.join(vae_folder, 'MODEL/'))
-        with h5py.File(os.path.join(vae_folder, 'DATA.hdf5'), 'w') as file:
-            file.create_group('data')
-            file['data'].create_dataset('input', data=test_input_data)
-            file['data'].create_dataset('latent', data=test_latent_data)
-            file['data'].create_dataset('output', data=test_output_data)
-            
-            file.create_group('eigenvalue')
-            file['eigenvalue'].create_dataset('input', data=test_input_value)
-            file['eigenvalue'].create_dataset('output', data=test_output_value)
-            
+        vae_model.save(os.path.join(output_folder, '{}/VAE.hdf5'.format(tag)))
+        with h5py.File(os.path.join(output_folder, '{}/DATA.hdf5'.format(tag)), 'w') as file:
             file.create_group('meta')
             file['meta'].create_dataset('theta', data=theta)
             file['meta'].create_dataset('z_size', data=z_size)
@@ -616,6 +608,11 @@ def main(tag, name, folder):
             file.create_group('history')
             for key, value in history.history.items():
                 file['history'].create_dataset(key, data=value)
+            
+            file.create_group('data')
+            file['data'].create_dataset('input', data=test_input_data)
+            file['data'].create_dataset('output', data=test_output_data)
+            file['data'].create_dataset('latent', data=test_latent_data)
     
     # Duration
     end = time.time()

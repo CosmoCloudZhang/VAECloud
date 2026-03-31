@@ -7,17 +7,14 @@ import argparse
 from sklearn import decomposition
 
 
-def main(tag, name, type, label, folder, directory):
+def main(tag, name, folder):
     '''
     Main function for the PCA analysis
     
     Arguments:
         tag (str): The tag of the configuration
         name (str): The name of the galaxy sample
-        type (str): The type of the configuration
-        label (str): The label of the configuration
         folder (str): The folder containing the datasets
-        directory (str): The directory containing the datasets
     
     Returns:
         duration (float): The duration of the process
@@ -26,14 +23,14 @@ def main(tag, name, type, label, folder, directory):
     start = time.time()
     
     # Path
-    os.makedirs(os.path.join(folder, '{}/'.format(name)), exist_ok = True)
-    os.makedirs(os.path.join(folder, '{}/{}/'.format(name, tag)), exist_ok = True)
+    data_folder = os.path.join(folder, 'DATA/')
+    output_folder = os.path.join(folder, '{}/'.format(name))
     
-    pca_folder = os.path.join(folder, '{}/{}/PCA/'.format(name, tag))
-    os.makedirs(pca_folder, exist_ok = True)
+    os.makedirs(output_folder, exist_ok = True)
+    os.makedirs(os.path.join(output_folder, '{}/'.format(tag)), exist_ok = True)
     
     # Load 
-    with h5py.File(os.path.join(directory, 'SYNTHESIZE/{}/{}_{}.hdf5'.format(tag, type, label)), 'r') as file:
+    with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
         input_data = file[name.lower()]['data'][...]
     data_size, bin_size, z_size = input_data.shape
     
@@ -46,10 +43,10 @@ def main(tag, name, type, label, folder, directory):
     output_data = numpy.reshape(pca_model.inverse_transform(eigenvalue_data), (data_size, bin_size, z_size))
     
     # Save
-    with open(os.path.join(pca_folder, 'MODEL.pkl'), 'wb') as file:
+    with open(os.path.join(output_folder, '{}/PCA.pkl'.format(tag)), 'wb') as file:
         pickle.dump(pca_model, file)
     
-    with h5py.File(os.path.join(pca_folder, 'DATA.hdf5'), 'w') as file:
+    with h5py.File(os.path.join(output_folder, '{}/PCA.hdf5'.format(tag)), 'w') as file:
         file.create_dataset('input', data = input_data)
         file.create_dataset('output', data = output_data)
         file.create_dataset('eigenvalue', data = eigenvalue_data)
@@ -68,18 +65,12 @@ if __name__ == '__main__':
     PARSE = argparse.ArgumentParser(description='PCA')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--name', type=str, required=True, help='The name of the galaxy sample')
-    PARSE.add_argument('--type', type=str, required=True, help='The type of the configuration')
-    PARSE.add_argument('--label', type=str, required=True, help='The label of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The folder containing the datasets')
-    PARSE.add_argument('--directory', type=str, required=True, help='The directory containing the datasets')
     
     # Parse
     TAG = PARSE.parse_args().tag
     NAME = PARSE.parse_args().name
-    TYPE = PARSE.parse_args().type
-    LABEL = PARSE.parse_args().label
     FOLDER = PARSE.parse_args().folder
-    DIRECTORY = PARSE.parse_args().directory
     
     # Output
-    OUTPUT = main(TAG, NAME, TYPE, LABEL, FOLDER, DIRECTORY)
+    OUTPUT = main(TAG, NAME, FOLDER)
