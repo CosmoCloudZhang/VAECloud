@@ -52,7 +52,7 @@ def main(folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

@@ -1,9 +1,10 @@
 import os
 import time
-import h5py
-import numpy
 import pickle
 import argparse
+
+import h5py
+import numpy
 from sklearn import decomposition
 
 
@@ -24,13 +25,13 @@ def main(tag, name, folder):
     
     # Path
     data_folder = os.path.join(folder, 'DATA/')
-    output_folder = os.path.join(folder, '{}/'.format(name))
+    output_folder = os.path.join(folder, f'{name}/')
     
     os.makedirs(output_folder, exist_ok = True)
-    os.makedirs(os.path.join(output_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(output_folder, f'{tag}/'), exist_ok = True)
     
     # Load 
-    with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(data_folder, f'{tag}/CORRECT.hdf5'), 'r') as file:
         input_data = file[name.lower()]['data'][...]
     data_size, bin_size, z_size = input_data.shape
     
@@ -43,10 +44,10 @@ def main(tag, name, folder):
     output_data = numpy.reshape(pca_model.inverse_transform(eigenvalue_data), (data_size, bin_size, z_size))
     
     # Save
-    with open(os.path.join(output_folder, '{}/PCA.pkl'.format(tag)), 'wb') as file:
+    with open(os.path.join(output_folder, f'{tag}/PCA.pkl'), 'wb') as file:
         pickle.dump(pca_model, file)
     
-    with h5py.File(os.path.join(output_folder, '{}/PCA.hdf5'.format(tag)), 'w') as file:
+    with h5py.File(os.path.join(output_folder, f'{tag}/PCA.hdf5'), 'w') as file:
         file.create_dataset('input', data = input_data)
         file.create_dataset('output', data = output_data)
         file.create_dataset('eigenvalue', data = eigenvalue_data)
@@ -56,7 +57,7 @@ def main(tag, name, folder):
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

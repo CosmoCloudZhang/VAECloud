@@ -1,8 +1,9 @@
 import os
 import time
+import argparse
+
 import h5py
 import numpy
-import argparse
 from matplotlib import colors, pyplot
 
 
@@ -56,11 +57,11 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/COVARIANCE/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/COVARIANCE/'), exist_ok = True)
     
     # Correct
-    with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(data_folder, f'{tag}/CORRECT.hdf5'), 'r') as file:
         z1 = file['meta']['z1'][...]
         z2 = file['meta']['z2'][...]
         
@@ -71,7 +72,7 @@ def main(tag, folder):
         bin_source_size = int(file['meta']['bin_source_size'][...])
     
     # Lens
-    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         input_data_lens = file['data']['input'][...]
         output_data_lens = file['data']['output'][...]
         
@@ -81,7 +82,7 @@ def main(tag, folder):
         data_lens_size = int(file['meta']['data_size'][...] * selection_size * evaluation_size)
     
     # Source
-    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(source_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         input_data_source = file['data']['input'][...]
         output_data_source = file['data']['output'][...]
         
@@ -130,26 +131,26 @@ def main(tag, folder):
     
     # Plot
     figure = plot_covariance(bin_lens_size, map_lens_size, input_covariance_lens)
-    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_INPUT_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/COVARIANCE/FIGURE_INPUT_LENS.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_lens_size, map_lens_size, output_covariance_lens)
-    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_OUTPUT_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/COVARIANCE/FIGURE_OUTPUT_LENS.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_source_size, map_source_size, input_covariance_source)
-    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_INPUT_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/COVARIANCE/FIGURE_INPUT_SOURCE.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     figure = plot_covariance(bin_source_size, map_source_size, output_covariance_source)
-    figure.savefig(os.path.join(plot_folder, '{}/COVARIANCE/FIGURE_OUTPUT_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/COVARIANCE/FIGURE_OUTPUT_SOURCE.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

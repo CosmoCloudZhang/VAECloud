@@ -1,8 +1,9 @@
 import os
 import time
+import argparse
+
 import h5py
 import numpy
-import argparse
 from matplotlib import pyplot
 
 
@@ -24,8 +25,8 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/LOSS/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/LOSS/'), exist_ok = True)
     
     # Configuration
     os.environ['PATH'] = '/global/homes/y/yhzhang/opt/texlive/bin/x86_64-linux:' + os.environ['PATH']
@@ -35,7 +36,7 @@ def main(tag, folder):
     pyplot.rcParams['font.size'] = 25
     
     # Lens
-    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         epoch_size = int(file['meta']['epoch_size'][...])
         
         all_loss_lens = file['history']['all_loss'][...]
@@ -103,11 +104,11 @@ def main(tag, folder):
     plot[1].set_title(r'$\mathrm{Validation}$')
     
     figure.subplots_adjust(hspace=0.0, wspace = 0.00)
-    figure.savefig(os.path.join(plot_folder, '{}/LOSS/FIGURE_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/LOSS/FIGURE_LENS.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Source
-    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(source_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         epoch_size = int(file['meta']['epoch_size'][...])
         
         all_loss_source = file['history']['all_loss'][...]
@@ -175,14 +176,14 @@ def main(tag, folder):
     plot[1].set_title(r'$\mathrm{Validation}$')
     
     figure.subplots_adjust(hspace=0.0, wspace = 0.00)
-    figure.savefig(os.path.join(plot_folder, '{}/LOSS/FIGURE_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/LOSS/FIGURE_SOURCE.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

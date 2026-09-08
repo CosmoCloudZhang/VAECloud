@@ -1,17 +1,61 @@
-import os
-import h5py
+import argparse
 import json
+import os
+import sys
 import time
+from itertools import product
+
+import h5py
 import numpy
 import pyccl
-import argparse
 from astropy import table
-from itertools import product
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+CODE = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+if CODE not in sys.path:
+    sys.path.insert(0, CODE)
+import UTILITY
+
+
+def write_inis(destination, tag, folder, cosmology, n_source):
+    '''
+    Write GAUSSIAN.ini and CONFIG.ini for OneCovariance
+    
+    Arguments:
+        destination (str): CELL/{tag}/COVARIANCE directory
+        tag (str): Year tag
+        folder (str): Product root
+        cosmology (dict): INFO/COSMOLOGY.json
+        n_source (int): Number of source bins
+    
+    Returns:
+        paths (list): Written ini paths
+    '''
+    info_folder = os.path.join(folder, 'INFO')
+    with open(os.path.join(info_folder, 'DENSITY.json'), 'r') as file:
+        density = json.load(file)[tag]
+    with open(os.path.join(info_folder, 'SURVEY.json'), 'r') as file:
+        survey = json.load(file)[tag]
+    paths = []
+    for kind, name in [('gaussian', 'GAUSSIAN.ini'), ('full', 'CONFIG.ini')]:
+        path = os.path.join(destination, name)
+        UTILITY.write_onecovariance_ini(
+            path,
+            destination=destination,
+            kind=kind,
+            cosmology=cosmology,
+            n_eff_clust=density['LENS'],
+            n_eff_lensing=density['SOURCE'],
+            survey_area=survey['AREA'],
+            n_source=n_source,
+        )
+        paths.append(path)
+    return paths
 
 
 def main(tag, folder):
     '''
-    Calculate information for covariance matrix of angular power spectra
+    Write OneCovariance inputs and Gaussian / full ini files
     
     Arguments:
         tag (str): The tag of the configuration
@@ -20,44 +64,38 @@ def main(tag, folder):
     Returns:
         duration (float): The duration of the process
     '''
-    # Start
     start = time.time()
-    print('Tag: {}'.format(tag))
+    print(f'Tag: {tag}')
     
-    # Path
     cell_folder = os.path.join(folder, 'CELL/')
     info_folder = os.path.join(folder, 'INFO/')
     data_folder = os.path.join(folder, 'DATA/')
-    os.makedirs(os.path.join(cell_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(cell_folder, '{}/COVARIANCE/'.format(tag)), exist_ok = True)
+    destination = os.path.join(cell_folder, f'{tag}/COVARIANCE/')
+    os.makedirs(os.path.join(cell_folder, f'{tag}/'), exist_ok=True)
+    os.makedirs(destination, exist_ok=True)
     
-    # Load
-    with h5py.File(os.path.join(data_folder, '{}/CORRECT.hdf5'.format(tag)), 'r') as file:
-        meta = {key: file['meta'][key][...] for key in file['meta'].keys()}
+    with h5py.File(os.path.join(data_folder, f'{tag}/CORRECT.hdf5'), 'r') as file:
+        meta = {key: file['meta'][key][...] for key in file['meta']}
         average_source = file['source']['average'][...]
         average_lens = file['lens']['average'][...]
     
-    # Meta
     z_grid = meta['z_grid']
     grid_size = int(meta['grid_size'][...])
     bin_lens_size = int(meta['bin_lens_size'][...])
     bin_source_size = int(meta['bin_source_size'][...])
     
-    # Lens
     table_lens = table.Table()
     table_lens['redshift'] = z_grid
     for m in range(bin_lens_size):
-        table_lens['n_{}(z)'.format(m + 1)] = average_lens[m, :]
-    table_lens.write(os.path.join(cell_folder, '{}/COVARIANCE/LENS.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+        table_lens[f'n_{m + 1}(z)'] = average_lens[m, :]
+    table_lens.write(os.path.join(destination, 'LENS.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Source
     table_source = table.Table()
     table_source['redshift'] = z_grid
     for m in range(bin_source_size):
-        table_source['n_{}(z)'.format(m + 1)] = average_source[m, :]
-    table_source.write(os.path.join(cell_folder, '{}/COVARIANCE/SOURCE.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+        table_source[f'n_{m + 1}(z)'] = average_source[m, :]
+    table_source.write(os.path.join(destination, 'SOURCE.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Alignment
     with open(os.path.join(info_folder, 'ALIGNMENT.json'), 'r') as file:
         alignment_info = json.load(file)
     alignment_bias = numpy.array(alignment_info['A'])
@@ -65,10 +103,9 @@ def main(tag, folder):
     table_alignment = table.Table()
     table_alignment['redshift'] = z_grid
     for m in range(bin_source_size):
-        table_alignment['A_{}(z)'.format(m + 1)] = alignment_bias
-    table_alignment.write(os.path.join(cell_folder, '{}/COVARIANCE/ALIGNMENT.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+        table_alignment[f'A_{m + 1}(z)'] = alignment_bias
+    table_alignment.write(os.path.join(destination, 'ALIGNMENT.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Galaxy
     with open(os.path.join(info_folder, 'GALAXY.json'), 'r') as file:
         galaxy_info = json.load(file)
     galaxy_bias = numpy.array(galaxy_info[tag])
@@ -76,10 +113,9 @@ def main(tag, folder):
     table_galaxy = table.Table()
     table_galaxy['redshift'] = z_grid
     for m in range(bin_lens_size):
-        table_galaxy['b_{}(z)'.format(m + 1)] = galaxy_bias
-    table_galaxy.write(os.path.join(cell_folder, '{}/COVARIANCE/GALAXY.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+        table_galaxy[f'b_{m + 1}(z)'] = galaxy_bias
+    table_galaxy.write(os.path.join(destination, 'GALAXY.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Magnification
     with open(os.path.join(info_folder, 'MAGNIFICATION.json'), 'r') as file:
         magnification_info = json.load(file)
     magnification_bias = numpy.array(magnification_info[tag])
@@ -87,41 +123,37 @@ def main(tag, folder):
     table_magnification = table.Table()
     table_magnification['redshift'] = z_grid
     for m in range(bin_source_size):
-        table_magnification['m_{}(z)'.format(m + 1)] = magnification_bias[m] * numpy.ones(grid_size + 1)
-    table_magnification.write(os.path.join(cell_folder, '{}/COVARIANCE/MAGNIFICATION.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+        table_magnification[f'm_{m + 1}(z)'] = magnification_bias[m] * numpy.ones(grid_size + 1)
+    table_magnification.write(os.path.join(destination, 'MAGNIFICATION.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Cosmology
     with open(os.path.join(info_folder, 'COSMOLOGY.json'), 'r') as file:
         cosmology_info = json.load(file)
     
     cosmology = pyccl.Cosmology(
         h=cosmology_info['H'],
         w0=cosmology_info['W0'],
-        wa=cosmology_info['WA'], 
-        n_s=cosmology_info['NS'], 
+        wa=cosmology_info['WA'],
+        n_s=cosmology_info['NS'],
         A_s=cosmology_info['AS'],
-        m_nu=cosmology_info['M_NU'],  
+        m_nu=cosmology_info['M_NU'],
         Neff=cosmology_info['N_EFF'],
-        Omega_b=cosmology_info['OMEGA_B'], 
-        Omega_k=cosmology_info['OMEGA_K'], 
-        Omega_c=cosmology_info['OMEGA_CDM'], 
+        Omega_b=cosmology_info['OMEGA_B'],
+        Omega_k=cosmology_info['OMEGA_K'],
+        Omega_c=cosmology_info['OMEGA_CDM'],
         mass_split='single', matter_power_spectrum='halofit', transfer_function='boltzmann_camb',
         extra_parameters={'camb': {'kmax': 50, 'lmax': 5000, 'halofit_version': 'mead2020_feedback', 'HMCode_logT_AGN': 7.8}}
     )
     
     pyccl.gsl_params['NZ_NORM_SPLINE_INTEGRATION'] = False
     pyccl.gsl_params['LENSING_KERNEL_SPLINE_INTEGRATION'] = False
-    
     pyccl.gsl_params['INTEGRATION_GAUSS_KRONROD_POINTS'] = 100
     pyccl.gsl_params['INTEGRATION_LIMBER_GAUSS_KRONROD_POINTS'] = 100
     
-    # Multipole
     ell1 = 20
     ell2 = 2000
     ell_size = 100
     ell_grid = numpy.geomspace(ell1, ell2, ell_size + 1)
     
-    # Cell TT
     ell = numpy.zeros((bin_lens_size, bin_lens_size, ell_size + 1), dtype=numpy.float32)
     index1 = numpy.zeros((bin_lens_size, bin_lens_size, ell_size + 1), dtype=numpy.int32)
     index2 = numpy.zeros((bin_lens_size, bin_lens_size, ell_size + 1), dtype=numpy.int32)
@@ -131,20 +163,18 @@ def main(tag, folder):
         tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=(z_grid, average_lens[i, :]), bias=(z_grid, galaxy_bias), mag_bias=(z_grid, magnification_bias[i] * numpy.ones(grid_size + 1)), has_rsd=False, n_samples=grid_size + 1)
         tracer2 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=(z_grid, average_lens[j, :]), bias=(z_grid, galaxy_bias), mag_bias=(z_grid, magnification_bias[j] * numpy.ones(grid_size + 1)), has_rsd=False, n_samples=grid_size + 1)
         value[i, j, :] = pyccl.cells.angular_cl(cosmo=cosmology, tracer1=tracer1, tracer2=tracer2, ell=ell_grid, p_of_k_a='delta_matter:delta_matter', l_limber=-1, limber_max_error=0.001, limber_integration_method='spline', p_of_k_a_lin='delta_matter:delta_matter', return_meta=False)
-        
         index1[i, j, :] = i + 1
         index2[i, j, :] = j + 1
         ell[i, j, :] = ell_grid
     
     table_cell = table.Table()
-    order = numpy.argsort(ell.flatten())
+    order = numpy.lexsort((index2.flatten(), index1.flatten(), ell.flatten()))
     table_cell['ell'] = ell.flatten()[order]
     table_cell['tomo_i'] = index1.flatten()[order]
     table_cell['tomo_j'] = index2.flatten()[order]
     table_cell['Cell_gg'] = value.flatten()[order]
-    table_cell.write(os.path.join(cell_folder, '{}/COVARIANCE/Cell_gg.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+    table_cell.write(os.path.join(destination, 'Cell_gg.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Cell TE
     ell = numpy.zeros((bin_lens_size, bin_source_size, ell_size + 1), dtype=numpy.float32)
     index1 = numpy.zeros((bin_lens_size, bin_source_size, ell_size + 1), dtype=numpy.int32)
     index2 = numpy.zeros((bin_lens_size, bin_source_size, ell_size + 1), dtype=numpy.int32)
@@ -154,20 +184,18 @@ def main(tag, folder):
         tracer1 = pyccl.tracers.NumberCountsTracer(cosmo=cosmology, dndz=(z_grid, average_lens[i, :]), bias=(z_grid, galaxy_bias), mag_bias=(z_grid, magnification_bias[i] * numpy.ones(grid_size + 1)), has_rsd=False, n_samples=grid_size + 1)
         tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=(z_grid, average_source[j, :]), has_shear=True, ia_bias=(z_grid, alignment_bias), use_A_ia=False, n_samples=grid_size + 1)
         value[i, j, :] = pyccl.cells.angular_cl(cosmo=cosmology, tracer1=tracer1, tracer2=tracer2, ell=ell_grid, p_of_k_a='delta_matter:delta_matter', l_limber=-1, limber_max_error=0.001, limber_integration_method='spline', p_of_k_a_lin='delta_matter:delta_matter', return_meta=False)
-        
         index1[i, j, :] = i + 1
         index2[i, j, :] = j + 1
         ell[i, j, :] = ell_grid
     
     table_cell = table.Table()
-    order = numpy.argsort(ell.flatten())
+    order = numpy.lexsort((index2.flatten(), index1.flatten(), ell.flatten()))
     table_cell['ell'] = ell.flatten()[order]
     table_cell['tomo_i'] = index1.flatten()[order]
     table_cell['tomo_j'] = index2.flatten()[order]
     table_cell['Cell_gkappa'] = value.flatten()[order]
-    table_cell.write(os.path.join(cell_folder, '{}/COVARIANCE/Cell_gkappa.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+    table_cell.write(os.path.join(destination, 'Cell_gkappa.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Cell EE
     ell = numpy.zeros((bin_source_size, bin_source_size, ell_size + 1), dtype=numpy.float32)
     index1 = numpy.zeros((bin_source_size, bin_source_size, ell_size + 1), dtype=numpy.int32)
     index2 = numpy.zeros((bin_source_size, bin_source_size, ell_size + 1), dtype=numpy.int32)
@@ -177,37 +205,30 @@ def main(tag, folder):
         tracer1 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=(z_grid, average_source[i, :]), has_shear=True, ia_bias=(z_grid, alignment_bias), use_A_ia=False, n_samples=grid_size + 1)
         tracer2 = pyccl.tracers.WeakLensingTracer(cosmo=cosmology, dndz=(z_grid, average_source[j, :]), has_shear=True, ia_bias=(z_grid, alignment_bias), use_A_ia=False, n_samples=grid_size + 1)
         value[i, j, :] = pyccl.cells.angular_cl(cosmo=cosmology, tracer1=tracer1, tracer2=tracer2, ell=ell_grid, p_of_k_a='delta_matter:delta_matter', l_limber=-1, limber_max_error=0.001, limber_integration_method='spline', p_of_k_a_lin='delta_matter:delta_matter', return_meta=False)
-        
         index1[i, j, :] = i + 1
         index2[i, j, :] = j + 1
         ell[i, j, :] = ell_grid
     
     table_cell = table.Table()
-    order = numpy.argsort(ell.flatten())
+    order = numpy.lexsort((index2.flatten(), index1.flatten(), ell.flatten()))
     table_cell['ell'] = ell.flatten()[order]
     table_cell['tomo_i'] = index1.flatten()[order]
     table_cell['tomo_j'] = index2.flatten()[order]
     table_cell['Cell_kappakappa'] = value.flatten()[order]
-    table_cell.write(os.path.join(cell_folder, '{}/COVARIANCE/Cell_kappakappa.ascii'.format(tag)), overwrite = True, format = 'ascii.commented_header')
+    table_cell.write(os.path.join(destination, 'Cell_kappakappa.ascii'), overwrite=True, format='ascii.commented_header')
     
-    # Duration
-    end = time.time()
-    duration = (end - start) / 60
+    ini_paths = write_inis(os.path.abspath(destination.rstrip('/')), tag, folder, cosmology_info, bin_source_size)
+    for path in ini_paths:
+        print(f'Wrote {path}')
     
-    # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    duration = (time.time() - start) / 60
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 
 if __name__ == '__main__':
-    # Input
-    PARSE = argparse.ArgumentParser(description='Cell Covariance')
+    PARSE = argparse.ArgumentParser(description='Write OneCovariance inputs and ini files')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The base folder of the dataset')
-    
-    # Parse
-    TAG = PARSE.parse_args().tag
-    FOLDER = PARSE.parse_args().folder
-    
-    # Output
-    OUTPUT = main(TAG, FOLDER)
+    ARG = PARSE.parse_args()
+    OUTPUT = main(ARG.tag, ARG.folder)

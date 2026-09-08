@@ -19,7 +19,7 @@ module load cray-hdf5-parallel
 
 # Activate the conda environment
 source $HOME/.bashrc
-conda activate $CosmoENV
+conda activate CosmoConda
 
 # Set environment
 export NUMEXPR_MAX_THREADS=$SLURM_CPUS_PER_TASK

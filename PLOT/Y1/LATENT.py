@@ -1,9 +1,10 @@
 import os
 import time
+import argparse
+
 import h5py
 import numpy
 import corner
-import argparse
 from matplotlib import pyplot
 
 
@@ -25,15 +26,15 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/LATENT/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/LATENT/'), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         latent_lens = file['data']['latent'][...]
         latent_lens_size = int(file['meta']['latent_size'][...])
     
-    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(source_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         latent_source = file['data']['latent'][...]
         latent_source_size = int(file['meta']['latent_size'][...])
     
@@ -54,10 +55,10 @@ def main(tag, folder):
         show_titles=True, 
         quantiles=[0.16, 0.50, 0.84], 
         range=numpy.repeat([(-3.0, 3.0)], latent_lens_size, axis=0),
-        labels=[r'$\xi_{}$'.format(k + 1) for k in range(latent_lens_size)]
+        labels=[rf'$\xi_{{{k + 1}}}$' for k in range(latent_lens_size)]
     )
     
-    figure.savefig(os.path.join(plot_folder, '{}/LATENT/FIGURE_LENS.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/LATENT/FIGURE_LENS.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Source
@@ -70,17 +71,17 @@ def main(tag, folder):
         show_titles=True, 
         quantiles=[0.16, 0.50, 0.84], 
         range=numpy.repeat([(-3.0, 3.0)], latent_source_size, axis=0),
-        labels=[r'$\xi_{}$'.format(k + 1) for k in range(latent_source_size)]
+        labels=[rf'$\xi_{{{k + 1}}}$' for k in range(latent_source_size)]
     )
     
-    figure.savefig(os.path.join(plot_folder, '{}/LATENT/FIGURE_SOURCE.pdf'.format(tag)), format='pdf', bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/LATENT/FIGURE_SOURCE.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

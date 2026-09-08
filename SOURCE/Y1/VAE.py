@@ -1,20 +1,20 @@
 import os
 import time
-import h5py
-import numpy
 import pickle
 import random
 import argparse
-from sklearn.model_selection import train_test_split
 
+import h5py
+import numpy
+from sklearn.model_selection import train_test_split
 import tensorflow
 from tensorflow import math, keras
 from tensorflow_probability import stats
-
 from keras.regularizers import L2
 from keras.initializers import HeNormal
 from keras import losses, Model, Sequential
 from keras.layers import Layer, Flatten, Reshape, Dense, LeakyReLU, Conv1D, Conv1DTranspose, Dropout, BatchNormalization
+
 
 @keras.saving.register_keras_serializable()
 class Encoder(Layer):
@@ -529,10 +529,10 @@ def main(tag, name, folder):
     start = time.time()
     
     # Folder
-    output_folder = os.path.join(folder, '{}/'.format(name))
+    output_folder = os.path.join(folder, f'{name}/')
     
     os.makedirs(output_folder, exist_ok = True)
-    os.makedirs(os.path.join(output_folder, '{}/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(output_folder, f'{tag}/'), exist_ok = True)
     
     # Seed
     seed = 1
@@ -541,11 +541,11 @@ def main(tag, name, folder):
     tensorflow.random.set_seed(seed)
     
     # Load 
-    with open(os.path.join(output_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
+    with open(os.path.join(output_folder, f'{tag}/PCA.pkl'), 'rb') as file:
         pca_model = pickle.load(file)
     pca_size = pca_model.n_components_
     
-    with h5py.File(os.path.join(output_folder, '{}/PCA.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(output_folder, f'{tag}/PCA.hdf5'), 'r') as file:
         input_data = file['input'][...]
         pca_eigenvalue = file['eigenvalue'][...]
     data_size, bin_size, z_size = input_data.shape
@@ -593,8 +593,8 @@ def main(tag, name, folder):
         test_latent_data = vae_model.sampler(test_latent_mu, test_latent_logvar)
         
         # Save
-        vae_model.save(os.path.join(output_folder, '{}/VAE/'.format(tag)))
-        with h5py.File(os.path.join(output_folder, '{}/VAE.hdf5'.format(tag)), 'w') as file:
+        vae_model.save(os.path.join(output_folder, f'{tag}/VAE/'))
+        with h5py.File(os.path.join(output_folder, f'{tag}/VAE.hdf5'), 'w') as file:
             file.create_group('meta')
             file['meta'].create_dataset('theta', data=theta)
             file['meta'].create_dataset('z_size', data=z_size)
@@ -629,7 +629,7 @@ def main(tag, name, folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

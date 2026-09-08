@@ -1,12 +1,13 @@
 import os
-import h5py
 import json
 import time
+import argparse
+from itertools import product
+
+import h5py
 import numpy
 import pyccl
 import scipy
-import argparse
-from itertools import product
 
 
 def main(tag, folder):
@@ -22,25 +23,25 @@ def main(tag, folder):
     '''
     # Start
     start = time.time()
-    print('Tag: {}'.format(tag))
+    print(f'Tag: {tag}')
     
     # Path
     cell_folder = os.path.join(folder, 'CELL/')
     info_folder = os.path.join(folder, 'INFO/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(cell_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(cell_folder, '{}/TE/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(cell_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(cell_folder, f'{tag}/TE/'), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
-        meta = {key: file['meta'][key][...] for key in file['meta'].keys()}
+    with h5py.File(os.path.join(lens_folder, f'{tag}/VAE.hdf5'), 'r') as file:
+        meta = {key: file['meta'][key][...] for key in file['meta']}
         data_lens = file['data']['output'][...]
     average_lens = numpy.average(data_lens, axis=0)
     bin_lens_size = int(meta['bin_size'][...])
     
-    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
-        meta = {key: file['meta'][key][...] for key in file['meta'].keys()}
+    with h5py.File(os.path.join(source_folder, f'{tag}/VAE.hdf5'), 'r') as file:
+        meta = {key: file['meta'][key][...] for key in file['meta']}
         data_source = file['data']['output'][...]
     average_source = numpy.average(data_source, axis=0)
     bin_source_size = int(meta['bin_size'][...])
@@ -127,7 +128,7 @@ def main(tag, folder):
                 cell_data[n, i, j, k] = cell_value.integrate(numpy.log(ell_grid[k]), numpy.log(ell_grid[k + 1])) / (ell_grid[k + 1] - ell_grid[k])
     
     # Save
-    with h5py.File(os.path.join(cell_folder, '{}/TE/VAE.hdf5'.format(tag)), 'w') as file:
+    with h5py.File(os.path.join(cell_folder, f'{tag}/TE/VAE.hdf5'), 'w') as file:
         file.create_dataset('data', data = cell_data)
         file.create_dataset('average', data = cell_average)
     
@@ -136,7 +137,7 @@ def main(tag, folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

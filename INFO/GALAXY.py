@@ -1,9 +1,10 @@
 import os
 import json
 import time
+import argparse
+
 import numpy
 import pyccl
-import argparse
 
 
 def main(folder):
@@ -66,7 +67,7 @@ def main(folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

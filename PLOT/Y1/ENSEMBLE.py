@@ -1,8 +1,9 @@
 import os
 import time
+import argparse
+
 import h5py
 import numpy
-import argparse
 from matplotlib import pyplot
 
 
@@ -29,7 +30,7 @@ def plot_ensemble(z_grid, select_lens, select_source, bin_lens_size, bin_source_
         
         plot[0].plot(z_grid, numpy.transpose(select_lens[:, m, :]), color = color_lens_list[m], linewidth = 0.1, alpha = 0.1, rasterized=True)
         
-        plot[0].plot(z_grid, numpy.mean(select_lens[:, m, :], axis=0), color = color_lens_list[m], linewidth = 2.5, label=r'$\mathrm{Bin} \,' + r'{:.0f}$'.format(m + 1), rasterized=True)
+        plot[0].plot(z_grid, numpy.mean(select_lens[:, m, :], axis=0), color = color_lens_list[m], linewidth = 2.5, label=rf'$\mathrm{{Bin}} \,{m + 1:.0f}$', rasterized=True)
     
     plot[0].set_xlim(0.0, 2.0)
     plot[0].set_ylim(0.0, 8.0)
@@ -45,7 +46,7 @@ def plot_ensemble(z_grid, select_lens, select_source, bin_lens_size, bin_source_
         
         plot[1].plot(z_grid, numpy.transpose(select_source[:, m, :]), color = color_source_list[m], linewidth = 0.1, alpha = 0.1, rasterized=True)
         
-        plot[1].plot(z_grid, numpy.mean(select_source[:, m, :], axis=0), color = color_source_list[m], linewidth = 2.5, label=r'$\mathrm{Bin} \,' + r'{:.0f}$'.format(m + 1), rasterized=True)
+        plot[1].plot(z_grid, numpy.mean(select_source[:, m, :], axis=0), color = color_source_list[m], linewidth = 2.5, label=rf'$\mathrm{{Bin}} \,{m + 1:.0f}$', rasterized=True)
     
     plot[1].set_xlim(0.0, 2.0)
     plot[1].set_ylim(0.0, 8.0)
@@ -79,11 +80,11 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/ENSEMBLE/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/ENSEMBLE/'), exist_ok = True)
     
     # Lens
-    with h5py.File(os.path.join(lens_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         input_data_lens = file['data']['input'][...]
         output_data_lens = file['data']['output'][...]
         
@@ -96,7 +97,7 @@ def main(tag, folder):
         sample_lens_size = int(data_lens_size * selection_size * evaluation_size)
     
     # Source
-    with h5py.File(os.path.join(source_folder, '{}/VAE.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(source_folder, f'{tag}/VAE.hdf5'), 'r') as file:
         input_data_source = file['data']['input'][...]
         output_data_source = file['data']['output'][...]
         
@@ -134,19 +135,19 @@ def main(tag, folder):
     
     # Input
     figure = plot_ensemble(z_grid, input_select_lens, input_select_source, bin_lens_size, bin_source_size)
-    figure.savefig(os.path.join(plot_folder, '{}/ENSEMBLE/FIGURE_INPUT.pdf'.format(tag)), bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/ENSEMBLE/FIGURE_INPUT.pdf'), bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Output
     figure = plot_ensemble(z_grid, output_select_lens, output_select_source, bin_lens_size, bin_source_size)
-    figure.savefig(os.path.join(plot_folder, '{}/ENSEMBLE/FIGURE_OUTPUT.pdf'.format(tag)), bbox_inches='tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/ENSEMBLE/FIGURE_OUTPUT.pdf'), bbox_inches='tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

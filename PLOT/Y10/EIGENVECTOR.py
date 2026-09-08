@@ -1,8 +1,9 @@
 import os
-import h5py
 import time
-import numpy
 import argparse
+
+import h5py
+import numpy
 from matplotlib import pyplot
 
 
@@ -24,15 +25,15 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/EIGENVECTOR/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/EIGENVECTOR/'), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(lens_folder, '{}/PCA.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(lens_folder, f'{tag}/PCA.hdf5'), 'r') as file:
         pca_lens_eigenvector = file['eigenvector'][...]
     pca_lens_size, bin_lens_size, z_size = pca_lens_eigenvector.shape
     
-    with h5py.File(os.path.join(source_folder, '{}/PCA.hdf5'.format(tag)), 'r') as file:
+    with h5py.File(os.path.join(source_folder, f'{tag}/PCA.hdf5'), 'r') as file:
         pca_source_eigenvector = file['eigenvector'][...]
     pca_source_size, bin_source_size, z_size = pca_source_eigenvector.shape
     
@@ -62,7 +63,7 @@ def main(tag, folder):
         plot.set_xlim(z1, z2)
         plot.set_ylim(0.0, numpy.max(pca_lens_eigenvector[n, :, :]) * 1.2)
         
-        figure.savefig(os.path.join(plot_folder, '{}/EIGENVECTOR/FIGURE_LENS{}.pdf'.format(tag, n + 1)), format='pdf', bbox_inches='tight', dpi = 512)
+        figure.savefig(os.path.join(plot_folder, f'{tag}/EIGENVECTOR/FIGURE_LENS{n + 1}.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
         pyplot.close(figure)
     
     # Source
@@ -75,14 +76,14 @@ def main(tag, folder):
         plot.set_xlim(z1, z2)
         plot.set_ylim(0.0, numpy.max(pca_source_eigenvector[n, :, :]) * 1.2)
         
-        figure.savefig(os.path.join(plot_folder, '{}/EIGENVECTOR/FIGURE_SOURCE{}.pdf'.format(tag, n + 1)), format='pdf', bbox_inches='tight', dpi = 512)
+        figure.savefig(os.path.join(plot_folder, f'{tag}/EIGENVECTOR/FIGURE_SOURCE{n + 1}.pdf'), format='pdf', bbox_inches='tight', dpi = 512)
         pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

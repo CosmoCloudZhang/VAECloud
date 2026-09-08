@@ -1,12 +1,13 @@
 import os
-import h5py
 import json
 import time
+import argparse
+from itertools import product
+
+import h5py
 import numpy
 import pyccl
 import scipy
-import argparse
-from itertools import product
 
 
 def main(tag, folder):
@@ -22,18 +23,18 @@ def main(tag, folder):
     '''
     # Start
     start = time.time()
-    print('Tag: {}'.format(tag))
+    print(f'Tag: {tag}')
     
     # Path
     cell_folder = os.path.join(folder, 'CELL/')
     info_folder = os.path.join(folder, 'INFO/')
     data_folder = os.path.join(folder, 'DATA/')
-    os.makedirs(os.path.join(cell_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(cell_folder, '{}/TT/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(cell_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(cell_folder, f'{tag}/TT/'), exist_ok = True)
     
     # Load
-    with h5py.File(os.path.join(data_folder, '{}/SCALE.hdf5'.format(tag)), 'r') as file:
-        meta = {key: file['meta'][key][...] for key in file['meta'].keys()}
+    with h5py.File(os.path.join(data_folder, f'{tag}/SCALE.hdf5'), 'r') as file:
+        meta = {key: file['meta'][key][...] for key in file['meta']}
         average_lens = file['lens']['average'][...]
         data_lens = file['lens']['data'][...]
     
@@ -117,7 +118,7 @@ def main(tag, folder):
                     cell_data[m, j, i, k] = cell_data[m, i, j, k]
     
     # Save
-    with h5py.File(os.path.join(cell_folder, '{}/TT/SCALE.hdf5'.format(tag)), 'w') as file:
+    with h5py.File(os.path.join(cell_folder, f'{tag}/TT/SCALE.hdf5'), 'w') as file:
         file.create_dataset('data', data = cell_data)
         file.create_dataset('average', data = cell_average)
     
@@ -126,7 +127,7 @@ def main(tag, folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

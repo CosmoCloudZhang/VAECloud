@@ -1,8 +1,9 @@
 import os
 import time
-import numpy
 import pickle
 import argparse
+
+import numpy
 from matplotlib import pyplot
 
 
@@ -24,17 +25,17 @@ def main(tag, folder):
     plot_folder = os.path.join(folder, 'PLOT/')
     lens_folder = os.path.join(folder, 'LENS/')
     source_folder = os.path.join(folder, 'SOURCE/')
-    os.makedirs(os.path.join(plot_folder, '{}/'.format(tag)), exist_ok = True)
-    os.makedirs(os.path.join(plot_folder, '{}/FRACTION/'.format(tag)), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/'), exist_ok = True)
+    os.makedirs(os.path.join(plot_folder, f'{tag}/FRACTION/'), exist_ok = True)
     
     # Load
-    with open(os.path.join(lens_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
+    with open(os.path.join(lens_folder, f'{tag}/PCA.pkl'), 'rb') as file:
         pca_lens_model = pickle.load(file)
     pca_lens_size = pca_lens_model.n_components_
     pca_lens_indices = numpy.arange(1, pca_lens_size + 1)
     pca_lens_fraction = pca_lens_model.explained_variance_ratio_
     
-    with open(os.path.join(source_folder, '{}/PCA.pkl'.format(tag)), 'rb') as file:
+    with open(os.path.join(source_folder, f'{tag}/PCA.pkl'), 'rb') as file:
         pca_source_model = pickle.load(file)
     pca_source_size = pca_source_model.n_components_
     pca_source_indices = numpy.arange(1, pca_source_size + 1)
@@ -79,14 +80,14 @@ def main(tag, folder):
     plot[1].set_ylabel(r'$\sum_{i}^{n} f_\mathrm{\sigma^2}(i)$')
     
     figure.subplots_adjust(hspace = 0.0, wspace = 0.0)
-    figure.savefig(os.path.join(plot_folder, '{}/FRACTION/FIGURE.pdf'.format(tag)), format = 'pdf', bbox_inches = 'tight', dpi = 512)
+    figure.savefig(os.path.join(plot_folder, f'{tag}/FRACTION/FIGURE.pdf'), format = 'pdf', bbox_inches = 'tight', dpi = 512)
     pyplot.close(figure)
     
     # Return
     end = time.time()
     duration = (end - start) / 60
     
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 

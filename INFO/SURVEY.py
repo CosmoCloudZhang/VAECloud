@@ -1,8 +1,9 @@
 import os
 import json
 import time
-import numpy
 import argparse
+
+import numpy
 
 
 def main(folder):
@@ -33,8 +34,8 @@ def main(folder):
     
     # Loop
     sky = 4 * numpy.pi * numpy.square(180 / numpy.pi)
-    for tag in survey.keys():
-        print('Tag: {}'.format(tag))
+    for tag in survey:
+        print(f'Tag: {tag}')
         survey[tag]['FRACTION'] = survey[tag]['AREA'] / sky
     
     # Save
@@ -46,7 +47,7 @@ def main(folder):
     duration = (end - start) / 60
     
     # Return
-    print('Time: {:.2f} minutes'.format(duration))
+    print(f'Time: {duration:.2f} minutes')
     return duration
 
 
