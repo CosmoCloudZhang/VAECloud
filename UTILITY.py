@@ -892,9 +892,9 @@ def plot_chi(path, values, title):
     colors = {
         'PCA': 'darkgreen',
         'VAE': 'darkred',
-        'SHIFT (unpaired)': 'darkblue',
-        'SCALE (unpaired)': 'darkorange',
-        'CORRECT (unpaired)': 'black',
+        'SHIFT': 'darkblue',
+        'SCALE': 'darkorange',
+        'CORRECT': 'black',
     }
     figure, plot = pyplot.subplots(nrows=2, ncols=1, figsize=(12, 10), sharex=True)
     finite = [values[name][numpy.isfinite(values[name])] for name in values]
@@ -1031,9 +1031,9 @@ def main(tag, folder, mask_kind='TRIPLE', covariance='full', sample_size=1024, s
     display = {
         'PCA': 'PCA',
         'VAE': 'VAE',
-        'SHIFT': 'SHIFT (unpaired)',
-        'SCALE': 'SCALE (unpaired)',
-        'CORRECT': 'CORRECT (unpaired)',
+        'SHIFT': 'SHIFT',
+        'SCALE': 'SCALE',
+        'CORRECT': 'CORRECT',
     }
     plot_chi(
         os.path.join(output, f'{mask_kind}.pdf'),

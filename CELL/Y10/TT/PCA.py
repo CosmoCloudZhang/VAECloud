@@ -10,15 +10,13 @@ import pyccl
 import scipy
 
 
-def main(tag, folder, sample_size, seed):
+def main(tag, folder):
     '''
     Calculate the position-position angular power spectra of latent-matched PCA n(z)
     
     Arguments:
         tag (str): The tag of the configuration
         folder (str): The base folder of the dataset
-        sample_size (int): Number of seeded rows
-        seed (int): Subset seed
     
     Returns:
         duration (float): The duration of the process
@@ -35,15 +33,14 @@ def main(tag, folder, sample_size, seed):
     with h5py.File(os.path.join(lens_folder, f'{tag}/TRUNCATE.hdf5'), 'r') as file:
         meta = {key: file['meta'][key][...] for key in file['meta']}
         data_lens = file['data']['output'][...]
-    available = data_lens.shape[0]
-    if sample_size is None or sample_size >= available:
-        index = numpy.arange(available)
-    else:
-        index = numpy.sort(numpy.random.RandomState(seed).choice(available, size=sample_size, replace=False))
+    data_size = int(data_lens.shape[0])
+    seed = 1
+    numpy.random.seed(seed)
+    sample_size = int(data_size * 0.2 * 0.5)
+    index = numpy.random.choice(data_size, size=sample_size, replace=False)
     data_lens = data_lens[index]
     average_lens = numpy.average(data_lens, axis=0)
     bin_lens_size = int(meta['bin_size'][...])
-    sample_size = data_lens.shape[0]
     
     z1 = 0.0
     z2 = 3.0
@@ -122,7 +119,5 @@ if __name__ == '__main__':
     PARSE = argparse.ArgumentParser(description='Cell TT PCA')
     PARSE.add_argument('--tag', type=str, required=True, help='The tag of the configuration')
     PARSE.add_argument('--folder', type=str, required=True, help='The base folder of the dataset')
-    PARSE.add_argument('--sample-size', type=int, default=16, help='Number of seeded rows')
-    PARSE.add_argument('--seed', type=int, default=1, help='Subset seed')
     ARG = PARSE.parse_args()
-    OUTPUT = main(ARG.tag, ARG.folder, ARG.sample_size, ARG.seed)
+    OUTPUT = main(ARG.tag, ARG.folder)

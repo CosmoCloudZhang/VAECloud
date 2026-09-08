@@ -22,9 +22,7 @@ export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
 TAG="Y10"
-SAMPLE_SIZE="${SAMPLE_SIZE:-1024}"
-SEED="${SEED:-1}"
 BASE_PATH="/pscratch/sd/y/yhzhang/VAECloud/"
 BASE_FOLDER="/global/cfs/cdirs/lsst/groups/MCP/CosmoCloud/VAECloud/"
 
-srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}CELL/${TAG}/TE/PCA.py" --tag=$TAG --folder=$BASE_FOLDER --sample-size=$SAMPLE_SIZE --seed=$SEED
+srun -u -N 1 -n 1 -c $SLURM_CPUS_PER_TASK python -u "${BASE_PATH}CELL/${TAG}/TE/PCA.py" --tag=$TAG --folder=$BASE_FOLDER

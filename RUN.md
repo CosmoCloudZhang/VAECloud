@@ -15,7 +15,7 @@ This overwrite already has Cell tables. Use `REORDER.sh` instead of `CONFIG.sh` 
 ```text
 INFO, LENS/SOURCE VAE+PCA, CELL SHIFT/SCALE/CORRECT/VAE
         |
-        +-- TRUNCATE ---------------- CELL TT/TE/EE PCA (1024)
+        +-- TRUNCATE ---------------- CELL TT/TE/EE PCA
         |
         +-- CONFIG  (from scratch)
         |     or REORDER  (this overwrite; keep existing Cell_*.ascii)
@@ -129,7 +129,7 @@ bash CELL/Y1/COVARIANCE/CHECK.sh
 bash CELL/Y10/COVARIANCE/CHECK.sh
 ```
 
-## 8. CELL PCA (after TRUNCATE; 1024 rows)
+## 8. CELL PCA (after TRUNCATE)
 
 ```bash
 bash CELL/Y1/TT/PCA.sh
