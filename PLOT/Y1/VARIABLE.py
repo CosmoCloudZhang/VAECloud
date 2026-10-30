@@ -9,6 +9,77 @@ from matplotlib import cm, colors, pyplot, ticker
 from tensorflow import keras
 
 
+def plot_variable(z_grid, data, x1, x2, y1, y2, latent1, latent2, path):
+    '''
+    Draw stacked latent traversals with a shared colour bar
+    
+    Arguments:
+        z_grid (numpy.ndarray): Redshift grid
+        data (numpy.ndarray): Traversals of shape (latent, sample, bin, z)
+        x1 (float): Lower redshift limit
+        x2 (float): Upper redshift limit
+        y1 (float): Lower amplitude limit
+        y2 (float): Upper amplitude limit
+        latent1 (float): Lower latent value
+        latent2 (float): Upper latent value
+        path (str): Output PDF path
+    
+    Returns:
+        None
+    '''
+    latent_size, sample_size, bin_size, _ = data.shape
+    
+    figure = pyplot.figure(figsize=(12, 2.8 * latent_size))
+    grid = figure.add_gridspec(
+        nrows=latent_size,
+        ncols=2,
+        width_ratios=[1.0, 0.028],
+        wspace=0.12,
+        hspace=0.06,
+        left=0.08,
+        right=0.90,
+        top=0.98,
+        bottom=0.08,
+    )
+    
+    norm = colors.Normalize(vmin=latent1, vmax=latent2)
+    scalar_mappable = cm.ScalarMappable(cmap=cm.plasma_r, norm=norm)
+    color_list = cm.plasma_r(numpy.linspace(0.0, 1.0, sample_size))
+    
+    axes = []
+    for k in range(latent_size):
+        ax = figure.add_subplot(grid[k, 0], sharex=axes[0] if axes else None)
+        axes.append(ax)
+        
+        for n in range(sample_size):
+            for m in range(bin_size):
+                ax.plot(z_grid, data[k, n, m, :], color=color_list[n], linewidth=1.2, rasterized=True)
+        
+        ax.set_xlim(x1, x2)
+        ax.set_ylim(y1, y2)
+        ax.set_ylabel(r'$\varphi^{m}(z)$')
+        ax.text(0.97, 0.88, rf'$\xi_{{{k + 1}}}$', transform=ax.transAxes, ha='right', va='top')
+        
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(6))
+        ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(2.0))
+        ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+        ax.tick_params(which='both', direction='in', top=True, right=True)
+        if k < latent_size - 1:
+            ax.tick_params(labelbottom=False)
+    
+    axes[-1].set_xlabel(r'$z$')
+    
+    colorbar = figure.colorbar(scalar_mappable, cax=figure.add_subplot(grid[:, 1]))
+    colorbar.set_label(r'$\xi_{k}$')
+    colorbar.set_ticks(numpy.linspace(latent1, latent2, 5))
+    colorbar.ax.tick_params(which='both', direction='in')
+    colorbar.ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+    
+    figure.savefig(path, format='pdf', bbox_inches='tight', pad_inches=0.04, dpi=512)
+    pyplot.close(figure)
+
+
 def main(tag, folder):
     '''
     Plot the variable of the VAE model
@@ -83,58 +154,18 @@ def main(tag, folder):
     pyplot.rcParams['pgf.texsystem'] = 'pdflatex'
     pyplot.rcParams['text.usetex'] = True
     pyplot.rcParams['font.size'] = 20
+    pyplot.rcParams['axes.linewidth'] = 1.2
+    pyplot.rcParams['xtick.major.width'] = 1.2
+    pyplot.rcParams['ytick.major.width'] = 1.2
     
-    # Lens
-    figure, plot = pyplot.subplots(nrows=latent_lens_size, ncols=1, figsize=(12, 3 * latent_lens_size), sharex=True)
-    if latent_lens_size == 1:
-        plot = [plot]
-    
-    norm = colors.Normalize(vmin=latent1, vmax=latent2)
-    scalar_mappable = cm.ScalarMappable(cmap=cm.plasma_r, norm=norm)
-    color_list = cm.plasma_r(numpy.linspace(0.0, 1.0, sample_size + 1))
-    
-    for k in range(latent_lens_size):
-        for n in range(sample_size + 1):
-            for m in range(bin_lens_size):
-                plot[k].plot(z_grid, data_lens[k, n, m, :], color = color_list[n], linewidth = 1.0, rasterized = True)
-        plot[k].set_xlim(0.0, 1.4)
-        plot[k].set_ylim(0.0, 8.0)
-        plot[k].set_ylabel(r'$\phi^m (z)$')
-        plot[k].text(0.02, 0.82, rf'$\xi_{{{k + 1}}}$ in $[{latent1:.0f},{latent2:+.0f}]$, others $0$', transform=plot[k].transAxes, fontsize=16)
-        plot[k].yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 8.0, 2.0)))
-    
-    plot[-1].set_xlabel(r'$z$')
-    figure.colorbar(mappable=scalar_mappable, ax=plot, orientation='vertical', label=r'$\xi_k$', shrink=0.9)
-    figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
-    
-    figure.savefig(os.path.join(plot_folder, f'{tag}/VARIABLE/FIGURE_LENS.pdf'), format='pdf', bbox_inches='tight', dpi=512)
-    pyplot.close(figure)
-    
-    # Source
-    figure, plot = pyplot.subplots(nrows=latent_source_size, ncols=1, figsize=(12, 3 * latent_source_size), sharex=True)
-    if latent_source_size == 1:
-        plot = [plot]
-    
-    norm = colors.Normalize(vmin=latent1, vmax=latent2)
-    scalar_mappable = cm.ScalarMappable(cmap=cm.plasma_r, norm=norm)
-    color_list = cm.plasma_r(numpy.linspace(0.0, 1.0, sample_size + 1))
-    
-    for k in range(latent_source_size):
-        for n in range(sample_size + 1):
-            for m in range(bin_source_size):
-                plot[k].plot(z_grid, data_source[k, n, m, :], color = color_list[n], linewidth = 1.0, rasterized = True)
-        plot[k].set_xlim(0.0, 2.1)
-        plot[k].set_ylim(0.0, 8.0)
-        plot[k].set_ylabel(r'$\phi^m (z)$')
-        plot[k].text(0.02, 0.82, rf'$\xi_{{{k + 1}}}$ in $[{latent1:.0f},{latent2:+.0f}]$, others $0$', transform=plot[k].transAxes, fontsize=16)
-        plot[k].yaxis.set_major_locator(ticker.FixedLocator(numpy.arange(0.0, 8.0, 2.0)))
-    
-    plot[-1].set_xlabel(r'$z$')
-    figure.colorbar(mappable=scalar_mappable, ax=plot, orientation='vertical', label=r'$\xi_k$', shrink=0.9)
-    figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
-    
-    figure.savefig(os.path.join(plot_folder, f'{tag}/VARIABLE/FIGURE_SOURCE.pdf'), format='pdf', bbox_inches='tight', dpi=512)
-    pyplot.close(figure)
+    plot_variable(
+        z_grid, data_lens, 0.0, 1.5, 0.0, 8.0, latent1, latent2,
+        os.path.join(plot_folder, f'{tag}/VARIABLE/FIGURE_LENS.pdf'),
+    )
+    plot_variable(
+        z_grid, data_source, 0.0, 1.8, 0.0, 8.0, latent1, latent2,
+        os.path.join(plot_folder, f'{tag}/VARIABLE/FIGURE_SOURCE.pdf'),
+    )
     
     # Return
     end = time.time()
